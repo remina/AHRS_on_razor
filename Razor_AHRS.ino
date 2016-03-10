@@ -404,12 +404,19 @@ void read_sensors() {
 // Read every sensor and record a time stamp
 // Init DCM with unfiltered orientation
 // TODO re-init global vars?
-void reset_sensor_fusion() {
+void reset_sensor_fusion() 
+{
   float temp1[3];
   float temp2[3];
   float xAxis[] = {1.0f, 0.0f, 0.0f};
 
   read_sensors();
+  // Apply sensor calibration
+  compensate_sensor_errors();
+  //**************************newly added normlize sensor output********************//
+  norm(accel, (accel + 1), (accel + 2));
+  norm(magnetom, (magnetom + 1), (magnetom + 2));
+  
   timestamp = millis();
   
   // GET PITCH

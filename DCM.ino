@@ -57,20 +57,30 @@ void error_calaulate(void)
   Serial.print(vz);Serial.println();
   /////////////////////////////////////////////////////////
   // Estimated direction of magnetic 
-  if (magnetom[0] < 0 && magnetom[1] < 0)
-  {
-	wy =  -2.0 * (bx * (0.5f - q2q2 - q3q3) + bz * (q1q3 - q0q2));
-	wx =  2.0 * (bx * (q1q2 - q0q3) - bz * (q0q1 + q2q3));
-	wz =  -2.0 * (bx * (q0q2 + q1q3) - bz * (0.5f - q1q1 - q2q2));  
-  }
-  else if ()
-  {
-	  
-  }
-  else if
-  {
-	  
-  }
+     if ((magnetom[0] * magnetom[1]) > 0)
+     {
+	   wy =  2.0 * (bx * (0.5f - q2q2 - q3q3) + bz * (q1q3 - q0q2));
+	   wx =  -2.0 * (bx * (q1q2 - q0q3) + bz * (q0q1 + q2q3));
+	   wz =  2.0 * (bx * (q0q2 + q1q3) + bz * (0.5f - q1q1 - q2q2));  
+     }
+     else
+     {
+	   wy =  -2.0 * (bx * (0.5f - q2q2 - q3q3) + bz * (q1q3 - q0q2));
+	   wx =  2.0 * (bx * (q1q2 - q0q3) + bz * (q0q1 + q2q3));
+	   wz =  2.0 * (bx * (q0q2 + q1q3) + bz * (0.5f - q1q1 - q2q2)); 
+     }
+  // else if (magnetom[0] > 0 && magnetom[1] < 0)
+  // {
+	// wy =  -2.0 * (bx * (0.5f - q2q2 - q3q3) + bz * (q1q3 - q0q2));
+	// wx =  2.0 * (bx * (q1q2 - q0q3) + bz * (q0q1 + q2q3));
+	// wz =  2.0 * (bx * (q0q2 + q1q3) + bz * (0.5f - q1q1 - q2q2));   
+  // }
+  // else
+  // {
+	// wy =  2.0 * (bx * (0.5f - q2q2 - q3q3) + bz * (q1q3 - q0q2));
+	// wx =  -2.0 * (bx * (q1q2 - q0q3) + bz * (q0q1 + q2q3));
+	// wz =  2.0 * (bx * (q0q2 + q1q3) + bz * (0.5f - q1q1 - q2q2));  
+  // }	
 
 
   //normlize estimated output
@@ -126,7 +136,7 @@ void quatanion_update(void)
   /////////////////////////////////////////////////////////
   for (char i = 0; i < 3; i++)
   {
-	  if (fabs(ripe_gyro[i]) < 0.02)
+	  if (fabs(ripe_gyro[i]) < 0.30)
 		  ripe_gyro[i] = 0.0;
   }
   /////////////////////////////////////////////////////////
@@ -153,10 +163,10 @@ void quatanion_update(void)
   Serial.print("#interation time:");
   Serial.print(G_Dt);Serial.println();
   /////////////////////////////////////////////////////////
-  qua[0] += (-qua[1] * gyro_x + qua[2] * gyro_y + qua[3] * gyro_z) * G_Dt / 2.0f;
-  qua[1] += (qua[0] * gyro_x - qua[2] * gyro_z + qua[3] * gyro_y) *  G_Dt / 2.0f;
-  qua[2] += (-qua[0] * gyro_y + qua[1] * gyro_z + qua[3] * gyro_x) *  G_Dt / 2.0f;
-  qua[3] += (-qua[0] * gyro_z - qua[1] * gyro_y - qua[2] * gyro_x) *  G_Dt / 2.0f;
+  qua[0] += (-qua[1] * gyro_x - qua[2] * gyro_y - qua[3] * gyro_z) * G_Dt / 2.0f;
+  qua[1] += (qua[0] * gyro_x + qua[2] * gyro_z - qua[3] * gyro_y) *  G_Dt / 2.0f;
+  qua[2] += (qua[0] * gyro_y - qua[1] * gyro_z + qua[3] * gyro_x) *  G_Dt / 2.0f;
+  qua[3] += (qua[0] * gyro_z + qua[1] * gyro_y - qua[2] * gyro_x) *  G_Dt / 2.0f;
   qua_norm(qua); 
   //////////////////////////////////////////////////////////
   Serial.print("#quatanion after:");

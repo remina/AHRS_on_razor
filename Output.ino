@@ -6,13 +6,10 @@ void output_angles()
   if (output_format == OUTPUT__FORMAT_BINARY)
   {
     float ypr[3];  
-    // ypr[0] = TO_DEG(yaw);
-    // ypr[1] = TO_DEG(pitch);
-    // ypr[2] = TO_DEG(roll);
-    // Serial.write((byte*) ypr, 12);  // No new-line
-    Serial.print(yaw); Serial.print(",");
-    Serial.print(pitch); Serial.print(",");
-    Serial.print(roll); Serial.println();
+    ypr[0] = TO_DEG(yaw);
+    ypr[1] = TO_DEG(pitch);
+    ypr[2] = TO_DEG(roll);
+    Serial.write((byte*) ypr, 12);  // No new-line
   }
   else if (output_format == OUTPUT__FORMAT_TEXT)
   {
@@ -22,6 +19,7 @@ void output_angles()
     Serial.print(TO_DEG(roll)); Serial.println();
   }
 }
+
 
 // Output angles in quatanion
 void output_quatanion()

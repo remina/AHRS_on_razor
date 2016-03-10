@@ -1,5 +1,5 @@
 /***************************************************************************************************************
-* Razor AHRS Firmware v1.4.2 
+* Razor AHRS Firmware v1.4.2
 * 9 Degree of Measurement Attitude and Heading Reference System
 * for Sparkfun "9DOF Razor IMU" (SEN-10125 and SEN-10736)
 * and "9DOF Sensor Stick" (SEN-10183, 10321 and SEN-10724)
@@ -100,7 +100,7 @@
       "#ot" - Output angles in TEXT format (Output frames have form like "#YPR=-142.28,-5.38,33.52",
               followed by carriage return and line feed [\r\n]).
 
-      something new!!
+      // newly added commands
       "#oqt" - Output quatanion in TEXT format (Output frames have form like "#QUA=xx.xx,-xx.xx,xx.xx,xx.xx",
               followed by carriage return and line feed [\r\n]).
       
@@ -108,9 +108,10 @@
               followed by carriage return and line feed [\r\n]).
 
       //quatanion update alglorathim change P & I
-      "#cpxxx" - change proportion , proportion is xxx/1000
+      "#xpxxx" - change proportion , proportion is xxx/1000
 
-      "#cixxx" - change integral , integral is xxx/1000
+      "#xixxx" - change integral , integral is xxx/1000
+      
       // Sensor calibration
       "#oc" - Go to CALIBRATION output mode.
       "#on" - When in calibration mode, go on to calibrate NEXT sensor.
@@ -190,8 +191,9 @@
 #define OUTPUT__MODE_ANGLES 1 // Outputs yaw/pitch/roll in degrees
 #define OUTPUT__MODE_SENSORS_CALIB 2 // Outputs calibrated sensor values for all 9 axes
 #define OUTPUT__MODE_SENSORS_RAW 3 // Outputs raw (uncalibrated) sensor values for all 9 axes
-#define OUTPUT__MODE_QUATANION 4 //outputs yaw/pitch/roll om quatanion
-#define OUTPUT__MODE_SENSORS_BOTH 5 //Outputs calibrated AND raw sensor values for all 9 axes
+#define OUTPUT__MODE_SENSORS_BOTH 4 // Outputs calibrated AND raw sensor values for all 9 axes
+#define OUTPUT__MODE_QUATANION 5 //outputs yaw/pitch/roll om quatanion
+
 // Output format definitions (do not change)
 #define OUTPUT__FORMAT_TEXT 0 // Outputs data as text
 #define OUTPUT__FORMAT_BINARY 1 // Outputs data as binary float
@@ -225,21 +227,21 @@ boolean output_errors = false;  // true or false
 // Put MIN/MAX and OFFSET readings for your board here!
 // Accelerometer
 // "accel x,y,z (min/max) = X_MIN/X_MAX  Y_MIN/Y_MAX  Z_MIN/Z_MAX"
-// #define ACCEL_X_MIN ((float) -256)
-// #define ACCEL_X_MAX ((float) 257)
-// #define ACCEL_Y_MIN ((float) -241)
-// #define ACCEL_Y_MAX ((float) 264)
-// #define ACCEL_Z_MIN ((float) -278)
-// #define ACCEL_Z_MAX ((float) 250)
+#define ACCEL_X_MIN ((float) -255)
+#define ACCEL_X_MAX ((float) 264)
+#define ACCEL_Y_MIN ((float) -239)
+#define ACCEL_Y_MAX ((float) 264)
+#define ACCEL_Z_MIN ((float) -229)
+#define ACCEL_Z_MAX ((float) 275)
 
 // Magnetometer (standard calibration mode)
 // "magn x,y,z (min/max) = X_MIN/X_MAX  Y_MIN/Y_MAX  Z_MIN/Z_MAX"
-// #define MAGN_X_MIN ((float) -396)
-// #define MAGN_X_MAX ((float) 560)
-// #define MAGN_Y_MIN ((float) -557)
-// #define MAGN_Y_MAX ((float) 433)
-// #define MAGN_Z_MIN ((float) -255)
-// #define MAGN_Z_MAX ((float) 256)
+#define MAGN_X_MIN ((float) -306)
+#define MAGN_X_MAX ((float) 466)
+#define MAGN_Y_MIN ((float) -313)
+#define MAGN_Y_MAX ((float) 452)
+#define MAGN_Z_MIN ((float) -255)
+#define MAGN_Z_MAX ((float) 256)
 
 // Magnetometer (extended calibration mode)
 // Uncommend to use extended magnetometer calibration (compensates hard & soft iron errors)
@@ -249,33 +251,33 @@ boolean output_errors = false;  // true or false
 
 // Gyroscope
 // "gyro x,y,z (current/average) = .../OFFSET_X  .../OFFSET_Y  .../OFFSET_Z
-// #define GYRO_AVERAGE_OFFSET_X ((float) -9.35)
-// #define GYRO_AVERAGE_OFFSET_Y ((float) 26.41)
-// #define GYRO_AVERAGE_OFFSET_Z ((float) -4.31)
+#define GYRO_AVERAGE_OFFSET_X ((float) 22.69)
+#define GYRO_AVERAGE_OFFSET_Y ((float) 19.72)
+#define GYRO_AVERAGE_OFFSET_Z ((float) -1.09)
 
-
+/*
 // Calibration example:
 
 // "accel x,y,z (min/max) = -277.00/264.00  -256.00/278.00  -299.00/235.00"
-#define ACCEL_X_MIN ((float) -250)
-#define ACCEL_X_MAX ((float) 250)
-#define ACCEL_Y_MIN ((float) -250)
-#define ACCEL_Y_MAX ((float) 250)
-#define ACCEL_Z_MIN ((float) -250)
-#define ACCEL_Z_MAX ((float) 250)
+#define ACCEL_X_MIN ((float) -277)
+#define ACCEL_X_MAX ((float) 264)
+#define ACCEL_Y_MIN ((float) -256)
+#define ACCEL_Y_MAX ((float) 278)
+#define ACCEL_Z_MIN ((float) -299)
+#define ACCEL_Z_MAX ((float) 235)
 
 // "magn x,y,z (min/max) = -511.00/581.00  -516.00/568.00  -489.00/486.00"
-#define MAGN_X_MIN ((float) -600)
-#define MAGN_X_MAX ((float) 600)
-#define MAGN_Y_MIN ((float) -600)
-#define MAGN_Y_MAX ((float) 600)
-#define MAGN_Z_MIN ((float) -600)
-#define MAGN_Z_MAX ((float) 600)
+//#define MAGN_X_MIN ((float) -511)
+//#define MAGN_X_MAX ((float) 581)
+//#define MAGN_Y_MIN ((float) -516)
+//#define MAGN_Y_MAX ((float) 568)
+//#define MAGN_Z_MIN ((float) -489)
+//#define MAGN_Z_MAX ((float) 486)
 
 // Extended magn
-//#define CALIBRATION__MAGN_USE_EXTENDED true
-//const float magn_ellipsoid_center[3] = {91.5, -13.5, -48.1};
-//const float magn_ellipsoid_transform[3][3] = {{0.902, -0.00354, 0.000636}, {-0.00354, 0.9, -0.00599}, {0.000636, -0.00599, 1}};
+#define CALIBRATION__MAGN_USE_EXTENDED true
+const float magn_ellipsoid_center[3] = {91.5, -13.5, -48.1};
+const float magn_ellipsoid_transform[3][3] = {{0.902, -0.00354, 0.000636}, {-0.00354, 0.9, -0.00599}, {0.000636, -0.00599, 1}};
 
 // Extended magn (with Sennheiser HD 485 headphones)
 //#define CALIBRATION__MAGN_USE_EXTENDED true
@@ -283,10 +285,10 @@ boolean output_errors = false;  // true or false
 //const float magn_ellipsoid_transform[3][3] = {{0.879685, 0.000540833, -0.0106054}, {0.000540833, 0.891086, -0.0130338}, {-0.0106054, -0.0130338, 0.997494}};
 
 //"gyro x,y,z (current/average) = -40.00/-42.05  98.00/96.20  -18.00/-18.36"
-#define GYRO_AVERAGE_OFFSET_X ((float) 0)
-#define GYRO_AVERAGE_OFFSET_Y ((float) 0)
-#define GYRO_AVERAGE_OFFSET_Z ((float) 0)
-
+#define GYRO_AVERAGE_OFFSET_X ((float) -42.05)
+#define GYRO_AVERAGE_OFFSET_Y ((float) 96.20)
+#define GYRO_AVERAGE_OFFSET_Z ((float) -18.36)
+*/
 
 
 // DEBUG OPTIONS
@@ -295,11 +297,19 @@ boolean output_errors = false;  // true or false
 #define DEBUG__NO_DRIFT_CORRECTION false
 // Print elapsed time after each I/O loop
 #define DEBUG__PRINT_LOOP_TIME false
-
-
 /*****************************************************************/
 /****************** END OF USER SETUP AREA!  *********************/
 /*****************************************************************/
+
+
+
+
+
+
+
+
+
+
 // Check if hardware version code is defined
 #ifndef HW__VERSION_CODE
   // Generate compile error
@@ -323,16 +333,9 @@ boolean output_errors = false;  // true or false
 #define MAGN_Y_SCALE (100.0f / (MAGN_Y_MAX - MAGN_Y_OFFSET))
 #define MAGN_Z_SCALE (100.0f / (MAGN_Z_MAX - MAGN_Z_OFFSET))
 
-
-// Gain for gyroscope (ITG-3200)
-#define GYRO_GAIN 0.06957 // Same gain on all axes
+// Gain for gyroscope (ITG-3205)
+#define GYRO_GAIN 1.300 // Same gain on all axes
 #define GYRO_SCALED_RAD(x) (x * TO_RAD(GYRO_GAIN)) // Calculate the scaled gyro readings in radians per second
-
-// DCM parameters
-#define Kp_ROLLPITCH 0.02f
-#define Ki_ROLLPITCH 0.00002f
-#define Kp_YAW 1.2f
-#define Ki_YAW 0.00002f
 
 // Stuff
 #define STATUS_LED_PIN 13  // Pin number of status LED
@@ -352,40 +355,16 @@ float magnetom_tmp[3];
 
 float gyro[3];
 float gyro_average[3];
+float ripe_gyro[3];
 int gyro_num_samples = 0;
 
-// DCM variables
+// init 
 float MAG_Heading;
-float Accel_Vector[3]= {0, 0, 0}; // Store the acceleration in a vector
-float Gyro_Vector[3]= {0, 0, 0}; // Store the gyros turn rate in a vector
-float Omega_Vector[3]= {0, 0, 0}; // Corrected Gyro_Vector data
-float Omega_P[3]= {0, 0, 0}; // Omega Proportional correction
-float Omega_I[3]= {0, 0, 0}; // Omega Integrator
-float Omega[3]= {0, 0, 0};
-float errorRollPitch[3] = {0, 0, 0};
-float errorYaw[3] = {0, 0, 0};
-float DCM_Matrix[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
-float Update_Matrix[3][3] = {{0, 1, 2}, {3, 4, 5}, {6, 7, 8}};
-float Temporary_Matrix[3][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
-
-float qua[4] = {1,0,0,0};
-float q0q1 = 0.0, q0q2 = 0.0, q0q3 = 0.0, q1q1 = 0.0, q1q2 = 0.0, 
-      q1q3 = 0.0, q2q2 = 0.0, q2q3 = 0.0, q3q3 = 0.0;
-
-//estimated dorection of gravity
-float vx = 0.0, vy = 0.0, vz = 0.0;
-//estimated dorection of mag
-float wx = 0.0, wy = 0.0, wz = 0.0;
-
-float ex = 0.0, ey = 0.0, ez = 0.0;
-float integral_x = 0.0, integral_y = 0.0, integral_z = 0.0;
 
 // Euler angles
 float yaw;
 float pitch;
 float roll;
-
-float two_kp = 0.0, two_ki = 0.0;
 
 // DCM timing in the main loop
 unsigned long timestamp;
@@ -400,6 +379,21 @@ boolean reset_calibration_session_flag = true;
 int num_accel_errors = 0;
 int num_magn_errors = 0;
 int num_gyro_errors = 0;
+
+//**********************************************NEWLY ADDED FOR AHRS ARGLORITHM**********************************************//
+float qua[4] = {1,0,0,0};
+float q0q1 = 0.0, q0q2 = 0.0, q0q3 = 0.0, q1q1 = 0.0, q1q2 = 0.0, 
+      q1q3 = 0.0, q2q2 = 0.0, q2q3 = 0.0, q3q3 = 0.0;
+
+//estimated dorection of gravity
+float vx = 0.0, vy = 0.0, vz = 0.0;
+//estimated dorection of mag
+float wx = 0.0, wy = 0.0, wz = 0.0;
+
+float ex = 0.0, ey = 0.0, ez = 0.0;
+float integral_x = 0.0, integral_y = 0.0, integral_z = 0.0;
+
+float two_kp = 0.0, two_ki = 0.0;
 
 void read_sensors() {
   Read_Gyro(); // Read gyroscope
@@ -416,21 +410,6 @@ void reset_sensor_fusion() {
   float xAxis[] = {1.0f, 0.0f, 0.0f};
 
   read_sensors();
-  ///////////////////////////////////////////////////////
-  Serial.print("#raw accel:");
-  Serial.print(accel[0]);Serial.print(",");
-  Serial.print(accel[1]);Serial.print(",");
-  Serial.print(accel[2]);Serial.println();
-  Serial.print("#raw mag:");
-  Serial.print(magnetom[0]);Serial.print(",");
-  Serial.print(magnetom[1]);Serial.print(",");
-  Serial.print(magnetom[2]);Serial.println();
-  Serial.print("#raw gyro:");
-  Serial.print(gyro[0]);Serial.print(",");
-  Serial.print(gyro[1]);Serial.print(",");
-  Serial.print(gyro[2]);Serial.println();
-  /////////////////////////////////////////////////////////
-
   timestamp = millis();
   
   // GET PITCH
@@ -450,16 +429,15 @@ void reset_sensor_fusion() {
   Compass_Heading();
   yaw = MAG_Heading;
   
+  Serial.print("###############################################");
+
   //////////////////////////////////////////////////////////
   Serial.print("#init YPR:");
   Serial.print(TO_DEG(yaw));Serial.print(",");
   Serial.print(TO_DEG(pitch));Serial.print(",");
   Serial.print(TO_DEG(roll));Serial.println();
   //////////////////////////////////////////////////////////////
-
-
-  // Init rotation matrix
-  //init_rotation_matrix(DCM_Matrix, yaw, pitch, roll);
+  
   // Init quatanion
   init_quatanion(qua, yaw, pitch, roll);
   qua_norm(qua);
@@ -494,6 +472,7 @@ void compensate_sensor_errors() {
     gyro[0] -= GYRO_AVERAGE_OFFSET_X;
     gyro[1] -= GYRO_AVERAGE_OFFSET_Y;
     gyro[2] -= GYRO_AVERAGE_OFFSET_Z;
+
 }
 
 // Reset calibration session if reset_calibration_session_flag is set
@@ -506,8 +485,8 @@ void check_reset_calibration_session()
   
   // Reset acc and mag calibration variables
   for (int i = 0; i < 3; i++) {
-    accel_min[i] = accel_max[i] = accel[i];
-    magnetom_min[i] = magnetom_max[i] = magnetom[i];
+    accel_min[i] = accel_max[i] = 0.00f;
+    magnetom_min[i] = magnetom_max[i] = 0.00f;
   }
 
   // Reset gyro calibration variables
@@ -540,13 +519,13 @@ void setup()
 {
   // Init serial output
   Serial.begin(OUTPUT__BAUD_RATE);
-  Serial.print("###########################################################################");
+  
   // Init status LED
   pinMode (STATUS_LED_PIN, OUTPUT);
-  digitalWrite(STATUS_LED_PIN, 1);
+  digitalWrite(STATUS_LED_PIN, LOW);
 
   // Init sensors
-  delay(50);  // Give sensors enough time to start in ms
+  delay(50);  // Give sensors enough time to start
   I2C_Init();
   Accel_Init();
   Magn_Init();
@@ -556,40 +535,6 @@ void setup()
   delay(20);  // Give sensors enough time to collect data
   reset_sensor_fusion();
 
-  //**************************just for observing****************************//
-  //*************************************************************************//
-  // read_sensors();
-  // compensate_sensor_errors();
-  // //normlize sensor output
-  // norm(accel, (accel + 1), (accel + 2));
-  // norm(magnetom, (magnetom + 1), (magnetom + 2));
-  // error_calaulate();
-  // quatanion_update();
-  // delay(50);  // Give sensors enough time to collect data
-  // read_sensors();
-  // compensate_sensor_errors();
-  // //normlize sensor output
-  // norm(accel, (accel + 1), (accel + 2));
-  // norm(magnetom, (magnetom + 1), (magnetom + 2));
-  // error_calaulate();
-  // quatanion_update();
-  // delay(50);  // Give sensors enough time to collect data
-  // read_sensors();
-  // compensate_sensor_errors();
-  // //normlize sensor output
-  // norm(accel, (accel + 1), (accel + 2));
-  // norm(magnetom, (magnetom + 1), (magnetom + 2));
-  // error_calaulate();
-  // quatanion_update();
-  // delay(50);  // Give sensors enough time to collect data
-  // read_sensors();
-  // compensate_sensor_errors();
-  // //normlize sensor output
-  // norm(accel, (accel + 1), (accel + 2));
-  // norm(magnetom, (magnetom + 1), (magnetom + 2));
-  // error_calaulate();
-  // quatanion_update();
-  // delay(100);  // Give sensors enough time to collect data
   // Init output
 #if (OUTPUT__HAS_RN_BLUETOOTH == true) || (OUTPUT__STARTUP_STREAM_ON == false)
   turn_output_stream_off();
@@ -598,18 +543,26 @@ void setup()
 #endif
 }
 
+          
 // Main loop
 void loop()
 {
+  ///////////////////////////////////////////////////////
+  //Serial.print("#output:");
+  //Serial.print(output_mode);Serial.print(",");
+  //Serial.print(output_format);Serial.println();
+  /////////////////////////////////////////////////////////
   // Read incoming control messages
   if (Serial.available() >= 2)
   {
-    if (Serial.read() == '#') // Start of new control message
+    
+	if (Serial.read() == '#') // Start of new control message
     {
       int command = Serial.read(); // Commands
       if (command == 'f') // request one output _f_rame
         output_single_on = true;
-      else if (command = 'c')
+      //***********************************newly added**************************************************//
+      else if (command == 'x')
       {
         char pi = readChar();
         float num;
@@ -654,6 +607,7 @@ void loop()
           output_mode = OUTPUT__MODE_ANGLES;
           output_format = OUTPUT__FORMAT_BINARY;
         }
+        //*************************************newly added ******************************************//
         else if (output_param == 'q') //output angle in quatanion
         {
           char format_param = readChar();
@@ -725,7 +679,6 @@ void loop()
     { } // Skip character
   }
 
-
   // Time to read the sensors again?
   if((millis() - timestamp) >= OUTPUT__DATA_INTERVAL)
   {
@@ -737,20 +690,7 @@ void loop()
 
     // Update sensor readings
     read_sensors();
-    ///////////////////////////////////////////////////////
-    Serial.print("#raw accel:");
-    Serial.print(accel[0]);Serial.print(",");
-    Serial.print(accel[1]);Serial.print(",");
-    Serial.print(accel[2]);Serial.println();
-    Serial.print("#raw mag:");
-    Serial.print(magnetom[0]);Serial.print(",");
-    Serial.print(magnetom[1]);Serial.print(",");
-    Serial.print(magnetom[2]);Serial.println();
-    Serial.print("#raw gyro:");
-    Serial.print(gyro[0]);Serial.print(",");
-    Serial.print(gyro[1]);Serial.print(",");
-    Serial.print(gyro[2]);Serial.println();
-    /////////////////////////////////////////////////////////
+
     if (output_mode == OUTPUT__MODE_CALIBRATE_SENSORS)  // We're in calibration mode
     {
       check_reset_calibration_session();  // Check if this session needs a reset
@@ -758,31 +698,43 @@ void loop()
     }
     else if (output_mode == OUTPUT__MODE_ANGLES)  // Output angles
     {
-      // Apply sensor calibration
-      //apply xxxx_scale to make output in acc---250~+250,mag---600~+600
-      compensate_sensor_errors();
-      //normlize sensor output
-      norm(accel, (accel + 1), (accel + 2));
-      norm(magnetom, (magnetom + 1), (magnetom + 2));
-      //norm(gyro, (gyro + 1), (gyro + 2));
-      // Run qua_update algorithm
-      error_calaulate();
-      quatanion_update();
-
-      // Drift_correction();
-      // convert to Euler_angles
-      qua_euler();
+       //*********************newly added**************************************//
+       Serial.print("#raw accel:");
+       Serial.print(accel[0]);Serial.print(",");
+       Serial.print(accel[1]);Serial.print(",");
+       Serial.print(accel[2]);Serial.println();
+       Serial.print("#raw mag:");
+       Serial.print(magnetom[0]);Serial.print(",");
+       Serial.print(magnetom[1]);Serial.print(",");
+       Serial.print(magnetom[2]);Serial.println();
+       Serial.print("#raw gyro:");
+       Serial.print(gyro[0]);Serial.print(",");
+       Serial.print(gyro[1]);Serial.print(",");
+       Serial.print(gyro[2]);Serial.println();
+       //**************************************************************************//
+       // Apply sensor calibration
+       compensate_sensor_errors();
+       //**************************newly added normlize sensor output********************//
+       norm(accel, (accel + 1), (accel + 2));
+       norm(magnetom, (magnetom + 1), (magnetom + 2));
+    
+       //**************************convert gyro to rad & apply a scale*************************//
+	   ripe_gyro[0]=GYRO_SCALED_RAD(gyro[0]); //gyro x roll
+	   ripe_gyro[1]=GYRO_SCALED_RAD(gyro[1]); //gyro y pitch
+       ripe_gyro[2]=GYRO_SCALED_RAD(gyro[2]); //gyro z yaw
+       // Run qua_update algorithm
+       error_calaulate();
+       quatanion_update();
       
-      if (output_stream_on || output_single_on) output_angles();
-    }
-    else if (output_mode == OUTPUT__MODE_QUATANION)  //output quatanion
-    {
-      if (output_stream_on || output_single_on) output_quatanion();
-    }
-    else  // Output sensor values
-    {      
-      if (output_stream_on || output_single_on) output_sensors();
-    }
+       // convert to Euler_angles
+       qua_euler();
+       
+       if (output_stream_on || output_single_on) output_angles();
+     }
+     else  // Output sensor values
+     {      
+       if (output_stream_on || output_single_on) output_sensors();
+     }
     
     output_single_on = false;
     

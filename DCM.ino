@@ -1,6 +1,63 @@
 /* This file is part of the Razor AHRS Firmware */
+// Init quatanion using euler angles
+void init_quatanion(float m[4], float yaw, float pitch, float roll)
+{
+  float h_roll = 0.5 * roll;
+  float h_pitch = 0.5 * pitch;
+  float h_yaw = 0.5 * yaw;
+  float c1 = cos(h_roll);
+  float s1 = sin(h_roll);
+  float c2 = cos(h_pitch);
+
+  float s2 = sin(h_pitch);
+  float c3 = cos(h_yaw);
+  float s3 = sin(h_yaw);
+
+  m[0] = c1 * c2 * c3 + s1 * s2 * s3;  
+  m[1] = s1 * c2 * c3 - c1 * s2 * s3;  
+  m[2] = c1 * s2 * c3 + s1 * c2 * s3;  
+  m[3] = c1 * c2 * s3 - s1 * s2 * c3; 
+
+  qua_norm(m);      
+}
 
 //******************************newly added for AHRS alglorithm****************************************//
+void sensor_filter(void) //sliding_window filter
+{
+	if(++counter >= 9)
+		counter = 0;
+	//////////////////////////////////////////////////////////
+	Serial.print("#counter:");
+	Serial.print(counter);Serial.println();
+	// Apply sensor calibration
+	compensate_sensor_errors();
+	for(char i = 0; i < 3; i++)
+	{
+	    accel_store[i][counter] = accel[i];
+		magnetom_store[i][counter] = magnetom[i];
+		gyro_store[i][counter] = gyro[i]; 
+		
+		accel_mean[i] = mean(accel_store[i],9);
+		gyro_mean[i] = mean(gyro_store[i],9);
+		magnetom_mean[i] = mean(magnetom_store[i],9);
+	}
+	//////////////////////////////////////////////////////////
+	Serial.print("#mag_mean:");
+	Serial.print(magnetom_mean[0]);Serial.print(",");
+	Serial.print(magnetom_mean[1]);Serial.print(",");
+	Serial.print(magnetom_mean[2]);Serial.println();
+	Serial.print("#gravity_mean:");
+	Serial.print(accel_mean[0]);Serial.print(",");
+	Serial.print(accel_mean[1]);Serial.print(",");
+	Serial.print(accel_mean[2]);Serial.println();
+	Serial.print("#gyro_mean:");
+	Serial.print(gyro_mean[0]);Serial.print(",");
+	Serial.print(gyro_mean[1]);Serial.print(",");
+	Serial.print(gyro_mean[2]);Serial.println();
+	//////////////////////////////////////////////////////////////
+}
+
+
 void error_calaulate(void)
 {
   float hx = 0.0, hy = 0.0, bx = 0.0, bz = 0.0;
@@ -29,10 +86,10 @@ void error_calaulate(void)
   /////////////////////////////////////////////////////////
 
   // Reference direction of Earth's magnetic field
-  hy = 2.0f * (magnetom[0] * (0.5f - q2q2 - q3q3) + magnetom[1] * (q1q2 - q0q3) + magnetom[2] * (q1q3 + q0q2));
-  hx = 2.0f * (magnetom[0] * (q1q2 + q0q3) + magnetom[1] * (0.5f - q1q1 - q3q3) + magnetom[2] * (q2q3 - q0q1));
+  hy = 2.0f * (magnetom_mean[0] * (0.5f - q2q2 - q3q3) + magnetom_mean[1] * (q1q2 - q0q3) + magnetom_mean[2] * (q1q3 + q0q2));
+  hx = 2.0f * (magnetom_mean[0] * (q1q2 + q0q3) + magnetom_mean[1] * (0.5f - q1q1 - q3q3) + magnetom_mean[2] * (q2q3 - q0q1));
   bx = -1.0f * (sqrt((hx * hx) + (hy * hy)));
-  bz = 2.0f * (magnetom[0] * (q1q3 - q0q2) + magnetom[1] * (q2q3 + q0q1) + magnetom[2] * (0.5f - q1q1 - q2q2));
+  bz = 2.0f * (magnetom_mean[0] * (q1q3 - q0q2) + magnetom_mean[1] * (q2q3 + q0q1) + magnetom_mean[2] * (0.5f - q1q1 - q2q2));
 
   ///////////////////////////////////////////////////////////////
   // Serial.print("#estimated magnetom:");
@@ -57,7 +114,7 @@ void error_calaulate(void)
   // Serial.print(vz);Serial.println();
   /////////////////////////////////////////////////////////
   // Estimated direction of magnetic 
-     if ((magnetom[0] * magnetom[1]) > 0)
+     if ((magnetom_mean[0] * magnetom_mean[1]) > 0)
      {
 	   wy =  2.0 * (bx * (0.5f - q2q2 - q3q3) + bz * (q1q3 - q0q2));
 	   wx =  -2.0 * (bx * (q1q2 - q0q3) + bz * (q0q1 + q2q3));
@@ -93,9 +150,9 @@ void error_calaulate(void)
   // Serial.print(wz);Serial.println();
   /////////////////////////////////////////////////////////
   // Error is sum of cross product between estimated direction and measured direction of field vectors
-  ex = (accel[1] * vz - accel[2] * vy) + (magnetom[1] * wz - magnetom[2] * wy);
-  ey = (accel[2] * vx - accel[0] * vz) + (magnetom[2] * wx - magnetom[0] * wz);
-  ez = (accel[0] * vy - accel[1] * vx) + (magnetom[0] * wy - magnetom[1] * wx); 
+  ex = (accel_mean[1] * vz - accel_mean[2] * vy) + (magnetom_mean[1] * wz - magnetom_mean[2] * wy);
+  ey = (accel_mean[2] * vx - accel_mean[0] * vz) + (magnetom_mean[2] * wx - magnetom_mean[0] * wz);
+  ez = (accel_mean[0] * vy - accel_mean[1] * vx) + (magnetom_mean[0] * wy - magnetom_mean[1] * wx); 
   if(fabs(ex) < 0.01) ex = 0.0f;
   if(fabs(ey) < 0.01) ey = 0.0f;
   if(fabs(ez) < 0.01) ez = 0.0f;
@@ -178,12 +235,6 @@ void quatanion_update(void)
   Serial.print(qua[2]);Serial.print(",");
   Serial.print(qua[3]);Serial.println();
   //////////////////////////////////////////////////////////////
-  // convert quatanion to euler
-  qua_euler();
-  Serial.print("#YPR=");
-  Serial.print(TO_DEG(yaw)); Serial.print(",");
-  Serial.print(TO_DEG(pitch)); Serial.print(",");
-  Serial.print(TO_DEG(roll)); Serial.println();
 }
 
 

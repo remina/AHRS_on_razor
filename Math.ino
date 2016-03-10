@@ -1,5 +1,11 @@
 /* This file is part of the Razor AHRS Firmware */
 
+// Calculate the scaled gyro readings in radians per second
+float gyro_scaled_rad(float rate) 
+{
+  return(rate * TO_RAD(gyro_gain));
+} 
+
 //**********************************added new math functions******************************************************//
 //float abselute
 float fabs(float x)
@@ -51,28 +57,6 @@ void qua_multiply(float from[4], float to[4], float *out)
   out[3] = from[0] * to[3] + from[3] * to[0] + from[1] * to[2] - from[2] * to[1];
 }
 
-// Init quatanion using euler angles
-void init_quatanion(float m[4], float yaw, float pitch, float roll)
-{
-  float h_roll = 0.5 * roll;
-  float h_pitch = 0.5 * pitch;
-  float h_yaw = 0.5 * yaw;
-  float c1 = cos(h_roll);
-  float s1 = sin(h_roll);
-  float c2 = cos(h_pitch);
-
-  float s2 = sin(h_pitch);
-  float c3 = cos(h_yaw);
-  float s3 = sin(h_yaw);
-
-  m[0] = c1 * c2 * c3 + s1 * s2 * s3;  
-  m[1] = s1 * c2 * c3 - c1 * s2 * s3;  
-  m[2] = c1 * s2 * c3 + s1 * c2 * s3;  
-  m[3] = c1 * c2 * s3 - s1 * s2 * c3; 
-
-  qua_norm(m);      
-}
-
 // convert quatanion to euler
 void qua_euler(void)
 {
@@ -103,6 +87,15 @@ void Vector_Cross_Product(float out[3], const float v1[3], const float v2[3])
   out[0] = (v1[1] * v2[2]) - (v1[2] * v2[1]);
   out[1] = (v1[2] * v2[0]) - (v1[0] * v2[2]);
   out[2] = (v1[0] * v2[1]) - (v1[1] * v2[0]);
+}
+
+// array calcu mean
+float mean(float *m, float count)
+{
+	float sum = 0.0;
+	for(char i = 0; i < count; i++)
+		sum += *(m + i);
+	return (sum/count);
 }
 
 // Adds two vectors

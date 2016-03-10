@@ -144,10 +144,12 @@ void init_quatanion(float m[4], float yaw, float pitch, float roll)
   float c3 = cos(h_yaw);
   float s3 = sin(h_yaw);
 
-  m[0] = c1 * c2 * c3 - s1 * s2 * s3;  
-  m[1] = s1 * c2 * c3 + c1 * s2 * s3;  
-  m[2] = c1 * s2 * c3 - s1 * c2 * s3;  
-  m[3] = c1 * c2 * s3 + s1 * s2 * c3;       
+  m[0] = c1 * c2 * c3 + s1 * s2 * s3;  
+  m[1] = s1 * c2 * c3 - c1 * s2 * s3;  
+  m[2] = c1 * s2 * c3 + s1 * c2 * s3;  
+  m[3] = c1 * c2 * s3 - s1 * s2 * c3; 
+
+  qua_norm(m);      
 }
 
 // convert quatanion to euler

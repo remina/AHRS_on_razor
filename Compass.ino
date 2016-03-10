@@ -19,5 +19,5 @@ void Compass_Heading()
   // Tilt compensated magnetic field Y
   mag_y = magnetom[1] * cos_roll - magnetom[2] * sin_roll;
   // Magnetic Heading
-  MAG_Heading = atan2(-mag_y, mag_x);
+  MAG_Heading = PI - atan2(-mag_y, mag_x);
 }

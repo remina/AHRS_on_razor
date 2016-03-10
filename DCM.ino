@@ -141,23 +141,23 @@ void error_calaulate(void)
   q2q3 = qua[2] * qua[3]; 
   q3q3 = qua[3] * qua[3];
 
-  //normlize sensor output
-  norm(accel, (accel + 1), (accel + 2));
-  norm(magnetom, (magnetom + 1), (magnetom + 2));
-  norm(gyro, (gyro + 1), (gyro + 2));
-
-
   ///////////////////////////////////////////////////////
   Serial.print("#corrected & normlized accel:");
   Serial.print(accel[0]);Serial.print(",");
   Serial.print(accel[1]);Serial.print(",");
   Serial.print(accel[2]);Serial.println();
   /////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////
+  Serial.print("#corrected & normlized magnetom:");
+  Serial.print(magnetom[0]);Serial.print(",");
+  Serial.print(magnetom[1]);Serial.print(",");
+  Serial.print(magnetom[2]);Serial.println();
+  /////////////////////////////////////////////////////////
 
   // Reference direction of Earth's magnetic field
-  hx = 2.0f * (magnetom[0] * (0.5f - q2q2 - q3q3) + magnetom[1] * (q1q2 - q0q3) + magnetom[2] * (q1q3 + q0q2));
+  hx = -2.0f * (magnetom[0] * (0.5f - q2q2 - q3q3) + magnetom[1] * (q1q2 - q0q3) + magnetom[2] * (q1q3 + q0q2));
   hy = 2.0f * (magnetom[0] * (q1q2 + q0q3) + magnetom[1] * (0.5f - q1q1 - q3q3) + magnetom[2] * (q2q3 - q0q1));
-  bx = (float)(sqrt((hx * hx) + (hy * hy))) * -1.0f;
+  bx = -1.0f * (sqrt((hx * hx) + (hy * hy)));
   bz = 2.0f * (magnetom[0] * (q1q3 - q0q2) + magnetom[1] * (q2q3 + q0q1) + magnetom[2] * (0.5f - q1q1 - q2q2));
 
   ///////////////////////////////////////////////////////////////
@@ -169,9 +169,12 @@ void error_calaulate(void)
   //////////////////////////////////////////////////////////////////
 
   // Estimated direction of gravity 
-  vx = 2.0 * (q1q3 - q0q2) * -1.0f;
+  vx = -2.0 * (q1q3 - q0q2);
   vy = 2.0 * (q0q1 + q2q3);
   vz = -2.0 * (0.5f - q1q1 - q2q2);
+
+  //normlize estimated output
+  norm(&vx, &vy, &vz);
 
   ///////////////////////////////////////////////////////
   Serial.print("#final estimated gravity:");
@@ -180,9 +183,12 @@ void error_calaulate(void)
   Serial.print(vz);Serial.println();
   /////////////////////////////////////////////////////////
   // Estimated direction of magnetic 
-  wx =  2.0 * (bx * (0.5f - q2q2 - q3q3) + bz * (q1q3 - q0q2));
-  wy =  2.0 * (bx * (q1q2 - q0q3) - bz * (q0q1 + q2q3));
-  wz =  2.0 * (bx * (q0q2 + q1q3) - bz * (0.5f - q1q1 - q2q2));
+  wx =  -2.0 * (bx * (0.5f - q2q2 - q3q3) + bz * (q1q3 - q0q2));
+  wy =  -2.0 * (bx * (q1q2 - q0q3) - bz * (q0q1 + q2q3));
+  wz =  -2.0 * (bx * (q0q2 + q1q3) - bz * (0.5f - q1q1 - q2q2));
+
+  //normlize estimated output
+  norm(&wx, &wy, &wz);
 
   ///////////////////////////////////////////////////////
   Serial.print("#final estimated magnetom:");

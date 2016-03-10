@@ -415,7 +415,7 @@ void reset_sensor_fusion() {
   
   // GET PITCH
   // Using y-z-plane-component/x-component of gravity vector
-  pitch = -atan2(accel[0], sqrt(accel[1] * accel[1] + accel[2] * accel[2]));
+  pitch = atan2(accel[0], sqrt(accel[1] * accel[1] + accel[2] * accel[2]));
 	
   // GET ROLL
   // Compensate pitch of gravity vector 
@@ -424,16 +424,31 @@ void reset_sensor_fusion() {
   // Normally using x-z-plane-component/y-component of compensated gravity vector
   // roll = atan2(temp2[1], sqrt(temp2[0] * temp2[0] + temp2[2] * temp2[2]));
   // Since we compensated for pitch, x-z-plane-component equals z-component:
-  roll = atan2(temp2[1], temp2[2]);
+  roll = -atan2(temp2[1], temp2[2]);
   
   // GET YAW
   Compass_Heading();
   yaw = MAG_Heading;
   
+  //////////////////////////////////////////////////////////
+  Serial.print("#init YPR:");
+  Serial.print(TO_DEG(yaw));Serial.print(",");
+  Serial.print(TO_DEG(pitch));Serial.print(",");
+  Serial.print(TO_DEG(roll));Serial.println();
+  //////////////////////////////////////////////////////////////
+
+
   // Init rotation matrix
   //init_rotation_matrix(DCM_Matrix, yaw, pitch, roll);
   // Init quatanion
   init_quatanion(qua, yaw, pitch, roll);
+  //////////////////////////////////////////////////////////
+  Serial.print("#init quatanion:");
+  Serial.print(qua[0]);Serial.print(",");
+  Serial.print(qua[1]);Serial.print(",");
+  Serial.print(qua[2]);Serial.print(",");
+  Serial.print(qua[3]);Serial.println();
+  //////////////////////////////////////////////////////////////
 }
 
 // Apply calibration to raw sensor readings
@@ -661,6 +676,10 @@ void loop()
     Serial.print(magnetom[0]);Serial.print(",");
     Serial.print(magnetom[1]);Serial.print(",");
     Serial.print(magnetom[2]);Serial.println();
+    Serial.print("#raw gyro:");
+    Serial.print(gyro[0]);Serial.print(",");
+    Serial.print(gyro[1]);Serial.print(",");
+    Serial.print(gyro[2]);Serial.println();
     /////////////////////////////////////////////////////////
     if (output_mode == OUTPUT__MODE_CALIBRATE_SENSORS)  // We're in calibration mode
     {
@@ -672,10 +691,13 @@ void loop()
       // Apply sensor calibration
       //apply xxxx_scale to make output in acc---250~+250,mag---600~+600
       compensate_sensor_errors();
-
+      //normlize sensor output
+      norm(accel, (accel + 1), (accel + 2));
+      norm(magnetom, (magnetom + 1), (magnetom + 2));
+      //norm(gyro, (gyro + 1), (gyro + 2));
       // Run qua_update algorithm
       //////////////////////////////////////////////////////////
-      Serial.print("#init quatanion:");
+      Serial.print("#quatanion:");
       Serial.print(qua[0]);Serial.print(",");
       Serial.print(qua[1]);Serial.print(",");
       Serial.print(qua[2]);Serial.print(",");

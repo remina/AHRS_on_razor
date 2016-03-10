@@ -123,7 +123,7 @@ void Read_Magn()
     // MSB byte first, then LSB; Y and Z reversed: X, Z, Y
     magnetom[0] = -1 * (int16_t)(((((uint16_t) buff[4]) << 8) | buff[5]));  // X axis (internal sensor -y axis)
     magnetom[1] = (int16_t)(((((uint16_t) buff[0]) << 8) | buff[1]));  // Y axis (internal sensor -x axis)
-    magnetom[2] = -1 * (int16_t)(((((uint16_t) buff[2]) << 8) | buff[3]));  // Z axis (internal sensor -z axis)
+    magnetom[2] = -1 *(int16_t)(((((uint16_t) buff[2]) << 8) | buff[3]));  // Z axis (internal sensor -z axis)
 // 9DOF Sensor Stick SEN-10183 and SEN-10321 using HMC5843 magnetometer
 #elif (HW__VERSION_CODE == 10183) || (HW__VERSION_CODE == 10321)
     // MSB byte first, then LSB; X, Y, Z
@@ -198,7 +198,7 @@ void Read_Gyro()
   
   if (i == 6)  // All bytes received?
   {
-    gyro[0] = -1 * (int16_t)(((((uint16_t) buff[2]) << 8) | buff[3]));    // X axis (internal sensor -y axis)
+    gyro[0] = (int16_t)(((((uint16_t) buff[2]) << 8) | buff[3]));    // X axis (internal sensor -y axis)
     gyro[1] = -1 * (int16_t)(((((uint16_t) buff[0]) << 8) | buff[1]));    // Y axis (internal sensor -x axis)
     gyro[2] = (int16_t)(((((uint16_t) buff[4]) << 8) | buff[5]));    // Z axis (internal sensor -z axis)
   }

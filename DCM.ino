@@ -155,7 +155,7 @@ void error_calaulate(void)
   /////////////////////////////////////////////////////////
 
   // Reference direction of Earth's magnetic field
-  hx = -2.0f * (magnetom[0] * (0.5f - q2q2 - q3q3) + magnetom[1] * (q1q2 - q0q3) + magnetom[2] * (q1q3 + q0q2));
+  hx = 2.0f * (magnetom[0] * (0.5f - q2q2 - q3q3) + magnetom[1] * (q1q2 - q0q3) + magnetom[2] * (q1q3 + q0q2));
   hy = 2.0f * (magnetom[0] * (q1q2 + q0q3) + magnetom[1] * (0.5f - q1q1 - q3q3) + magnetom[2] * (q2q3 - q0q1));
   bx = -1.0f * (sqrt((hx * hx) + (hy * hy)));
   bz = 2.0f * (magnetom[0] * (q1q3 - q0q2) + magnetom[1] * (q2q3 + q0q1) + magnetom[2] * (0.5f - q1q1 - q2q2));
@@ -169,9 +169,9 @@ void error_calaulate(void)
   //////////////////////////////////////////////////////////////////
 
   // Estimated direction of gravity 
-  vx = -2.0 * (q1q3 - q0q2);
+  vx = 2.0 * (q0q2 - q1q3);
   vy = 2.0 * (q0q1 + q2q3);
-  vz = -2.0 * (0.5f - q1q1 - q2q2);
+  vz = 2.0 * (0.5f - q1q1 - q2q2);
 
   //normlize estimated output
   norm(&vx, &vy, &vz);
@@ -183,7 +183,7 @@ void error_calaulate(void)
   Serial.print(vz);Serial.println();
   /////////////////////////////////////////////////////////
   // Estimated direction of magnetic 
-  wx =  -2.0 * (bx * (0.5f - q2q2 - q3q3) + bz * (q1q3 - q0q2));
+  wx =  2.0 * (bx * (0.5f - q2q2 - q3q3) + bz * (q1q3 - q0q2));
   wy =  -2.0 * (bx * (q1q2 - q0q3) - bz * (q0q1 + q2q3));
   wz =  -2.0 * (bx * (q0q2 + q1q3) - bz * (0.5f - q1q1 - q2q2));
 
@@ -212,16 +212,21 @@ void quatanion_update(void)
 {
   // corrected gyro
   float gyro_x = 0.0, gyro_y = 0.0, gyro_z = 0.0;
+
+  ///////////////////////////////////////////////////////
+  Serial.print("#PI parameters:");
+  Serial.print(two_kp);Serial.print(",");
+  Serial.print(two_ki);Serial.println();
+  /////////////////////////////////////////////////////////
   
   // Compute and apply integral feedback if enabled(?2?3????PIDT?y眢?Y?)
   if(ex != 0.0f && ey != 0.0f && ez != 0.0f) 
   {
-   integral_x += two_ki * ex ;  // integral error scaled by Ki
-   integral_y += two_ki * ey ;
-   integral_z += two_ki * ez ;
-    
+   integral_x += ex ;  // integral error scaled by Ki
+   integral_y += ey ;
+   integral_z += ez ;
   }
-  else 
+  else
   {
     integral_x = 0.0f;  // prevent integral gyroindup
     integral_y = 0.0f;
@@ -229,17 +234,60 @@ void quatanion_update(void)
   }
 
   // apply p & i
-  gyro_x = accel[0] + two_kp * ex + integral_x;
-  gyro_y = accel[1] + two_kp * ey + integral_y;
-  gyro_z = accel[2] + two_kp * ez + integral_z;
+  gyro_x = gyro[0] + two_kp * ex + two_ki * integral_x;
+  gyro_y = gyro[1] + two_kp * ey + two_ki * integral_y;
+  gyro_z = gyro[2] + two_kp * ez + two_ki * integral_z;
 
+  ///////////////////////////////////////////////////////
+  Serial.print("#integral errors:");
+  Serial.print(integral_x);Serial.print(",");
+  Serial.print(integral_y);Serial.print(",");
+  Serial.print(integral_z);Serial.println();
+  /////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////
+  Serial.print("#real gyro:");
+  Serial.print(gyro[0]);Serial.print(",");
+  Serial.print(gyro[1]);Serial.print(",");
+  Serial.print(gyro[2]);Serial.println();
+  /////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////
+  Serial.print("#corrected gyro:");
+  Serial.print(gyro_x);Serial.print(",");
+  Serial.print(gyro_y);Serial.print(",");
+  Serial.print(gyro_z);Serial.println();
+  /////////////////////////////////////////////////////////
   // using quatanion differential to update
   //quatanion interation
-    
-  qua[0] += (-qua[1] * gyro_x - qua[2] * gyro_y * -1.0f - qua[3] * gyro_z * -1.0f) * G_Dt / 2.0f;
-  qua[1] += (qua[0] * gyro_x + qua[2] * gyro_z * -1.0f - qua[3] * gyro_y * -1.0f) *  G_Dt / 2.0f;
-  qua[2] += (qua[0] * gyro_y * -1.0f - qua[1] * gyro_z * -1.0f + qua[3] * gyro_x) *  G_Dt / 2.0f;
-  qua[3] += (qua[0] * gyro_z * -1.0f + qua[1] * gyro_y * -1.0f - qua[2] * gyro_x) *  G_Dt / 2.0f; 
+  //////////////////////////////////////////////////////////
+  Serial.print("#quatanion before:");
+  Serial.print(qua[0]);Serial.print(",");
+  Serial.print(qua[1]);Serial.print(",");
+  Serial.print(qua[2]);Serial.print(",");
+  Serial.print(qua[3]);Serial.println();
+  //////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////
+  Serial.print("#interation time:");
+  Serial.print(G_Dt);Serial.println();
+  /////////////////////////////////////////////////////////
+  qua[0] += (-qua[1] * gyro_x - qua[2] * gyro_y - qua[3] * gyro_z) * G_Dt / 2.0f;
+  qua[1] += (qua[0] * gyro_x + qua[2] * gyro_z - qua[3] * gyro_y) *  G_Dt / 2.0f;
+  qua[2] += (qua[0] * gyro_y - qua[1] * gyro_z + qua[3] * gyro_x) *  G_Dt / 2.0f;
+  qua[3] += (qua[0] * gyro_z + qua[1] * gyro_y - qua[2] * gyro_x) *  G_Dt / 2.0f;
+  qua_norm(qua); 
+  //////////////////////////////////////////////////////////
+  Serial.print("#quatanion after:");
+  Serial.print(qua[0]);Serial.print(",");
+  Serial.print(qua[1]);Serial.print(",");
+  Serial.print(qua[2]);Serial.print(",");
+  Serial.print(qua[3]);Serial.println();
+  //////////////////////////////////////////////////////////////
+  // convert quatanion to euler
+  qua_euler();
+
+  Serial.print("#YPR=");
+  Serial.print(TO_DEG(yaw)); Serial.print(",");
+  Serial.print(TO_DEG(pitch)); Serial.print(",");
+  Serial.print(TO_DEG(roll)); Serial.println();
 }
 
 

@@ -380,12 +380,12 @@ float yaw;
 float pitch;
 float roll;
 
-float two_kp = 260.0, two_ki = 10.00;
+float two_kp = 0.6, two_ki = 0.06;
 
 // DCM timing in the main loop
 unsigned long timestamp;
 unsigned long timestamp_old;
-float G_Dt; // Integration time for DCM algorithm
+float G_Dt = 0.02; // Integration time for DCM algorithm
 
 // More output-state variables
 boolean output_stream_on;
@@ -411,6 +411,21 @@ void reset_sensor_fusion() {
   float xAxis[] = {1.0f, 0.0f, 0.0f};
 
   read_sensors();
+  ///////////////////////////////////////////////////////
+  Serial.print("#raw accel:");
+  Serial.print(accel[0]);Serial.print(",");
+  Serial.print(accel[1]);Serial.print(",");
+  Serial.print(accel[2]);Serial.println();
+  Serial.print("#raw mag:");
+  Serial.print(magnetom[0]);Serial.print(",");
+  Serial.print(magnetom[1]);Serial.print(",");
+  Serial.print(magnetom[2]);Serial.println();
+  Serial.print("#raw gyro:");
+  Serial.print(gyro[0]);Serial.print(",");
+  Serial.print(gyro[1]);Serial.print(",");
+  Serial.print(gyro[2]);Serial.println();
+  /////////////////////////////////////////////////////////
+
   timestamp = millis();
   
   // GET PITCH
@@ -442,6 +457,7 @@ void reset_sensor_fusion() {
   //init_rotation_matrix(DCM_Matrix, yaw, pitch, roll);
   // Init quatanion
   init_quatanion(qua, yaw, pitch, roll);
+  qua_norm(qua);
   //////////////////////////////////////////////////////////
   Serial.print("#init quatanion:");
   Serial.print(qua[0]);Serial.print(",");
@@ -535,6 +551,38 @@ void setup()
   delay(20);  // Give sensors enough time to collect data
   reset_sensor_fusion();
 
+  read_sensors();
+  compensate_sensor_errors();
+  //normlize sensor output
+  norm(accel, (accel + 1), (accel + 2));
+  norm(magnetom, (magnetom + 1), (magnetom + 2));
+  error_calaulate();
+  quatanion_update();
+  delay(50);  // Give sensors enough time to collect data
+  read_sensors();
+  compensate_sensor_errors();
+  //normlize sensor output
+  norm(accel, (accel + 1), (accel + 2));
+  norm(magnetom, (magnetom + 1), (magnetom + 2));
+  error_calaulate();
+  quatanion_update();
+  delay(50);  // Give sensors enough time to collect data
+  read_sensors();
+  compensate_sensor_errors();
+  //normlize sensor output
+  norm(accel, (accel + 1), (accel + 2));
+  norm(magnetom, (magnetom + 1), (magnetom + 2));
+  error_calaulate();
+  quatanion_update();
+  delay(50);  // Give sensors enough time to collect data
+  read_sensors();
+  compensate_sensor_errors();
+  //normlize sensor output
+  norm(accel, (accel + 1), (accel + 2));
+  norm(magnetom, (magnetom + 1), (magnetom + 2));
+  error_calaulate();
+  quatanion_update();
+  delay(100);  // Give sensors enough time to collect data
   // Init output
 #if (OUTPUT__HAS_RN_BLUETOOTH == true) || (OUTPUT__STARTUP_STREAM_ON == false)
   turn_output_stream_off();
@@ -546,195 +594,195 @@ void setup()
 // Main loop
 void loop()
 {
-  // Read incoming control messages
-  if (Serial.available() >= 2)
-  {
-    if (Serial.read() == '#') // Start of new control message
-    {
-      int command = Serial.read(); // Commands
-      if (command == 'f') // request one output _f_rame
-        output_single_on = true;
-      else if (command == 's') // _s_ynch request
-      {
-        // Read ID
-        byte id[2];
-        id[0] = readChar();
-        id[1] = readChar();
+//   // Read incoming control messages
+//   if (Serial.available() >= 2)
+//   {
+//     if (Serial.read() == '#') // Start of new control message
+//     {
+//       int command = Serial.read(); // Commands
+//       if (command == 'f') // request one output _f_rame
+//         output_single_on = true;
+//       else if (command == 's') // _s_ynch request
+//       {
+//         // Read ID
+//         byte id[2];
+//         id[0] = readChar();
+//         id[1] = readChar();
         
-        // Reply with synch message
-        Serial.print("#SYNCH");
-        Serial.write(id, 2);
-        Serial.println();
-      }
-      else if (command == 'o') // Set _o_utput mode
-      {
-        char output_param = readChar();
-        if (output_param == 'n')  // Calibrate _n_ext sensor
-        {
-          curr_calibration_sensor = (curr_calibration_sensor + 1) % 3;
-          reset_calibration_session_flag = true;
-        }
-        else if (output_param == 't') // Output angles as _t_ext
-        {
-          output_mode = OUTPUT__MODE_ANGLES;
-          output_format = OUTPUT__FORMAT_TEXT;
-        }
-        else if (output_param == 'b') // Output angles in _b_inary format
-        {
-          output_mode = OUTPUT__MODE_ANGLES;
-          output_format = OUTPUT__FORMAT_BINARY;
-        }
-        else if (output_param == 'q') //output angle in quatanion
-        {
-          char format_param = readChar();
-          output_mode = OUTPUT__MODE_QUATANION;
-          if (format_param == 'b')
-          {
-            output_format == OUTPUT__FORMAT_BINARY;
-          }
-          else if (format_param == 't')
-          {
-            output_format == OUTPUT__FORMAT_TEXT;
-          }  
-        }
-        else if (output_param == 'c') // Go to _c_alibration mode
-        {
-          output_mode = OUTPUT__MODE_CALIBRATE_SENSORS;
-          reset_calibration_session_flag = true;
-        }
-        else if (output_param == 's') // Output _s_ensor values
-        {
-          char values_param = readChar();
-          char format_param = readChar();
-          if (values_param == 'r')  // Output _r_aw sensor values
-            output_mode = OUTPUT__MODE_SENSORS_RAW;
-          else if (values_param == 'c')  // Output _c_alibrated sensor values
-            output_mode = OUTPUT__MODE_SENSORS_CALIB;
-          else if (values_param == 'b')  // Output _b_oth sensor values (raw and calibrated)
-            output_mode = OUTPUT__MODE_SENSORS_BOTH;
+//         // Reply with synch message
+//         Serial.print("#SYNCH");
+//         Serial.write(id, 2);
+//         Serial.println();
+//       }
+//       else if (command == 'o') // Set _o_utput mode
+//       {
+//         char output_param = readChar();
+//         if (output_param == 'n')  // Calibrate _n_ext sensor
+//         {
+//           curr_calibration_sensor = (curr_calibration_sensor + 1) % 3;
+//           reset_calibration_session_flag = true;
+//         }
+//         else if (output_param == 't') // Output angles as _t_ext
+//         {
+//           output_mode = OUTPUT__MODE_ANGLES;
+//           output_format = OUTPUT__FORMAT_TEXT;
+//         }
+//         else if (output_param == 'b') // Output angles in _b_inary format
+//         {
+//           output_mode = OUTPUT__MODE_ANGLES;
+//           output_format = OUTPUT__FORMAT_BINARY;
+//         }
+//         else if (output_param == 'q') //output angle in quatanion
+//         {
+//           char format_param = readChar();
+//           output_mode = OUTPUT__MODE_QUATANION;
+//           if (format_param == 'b')
+//           {
+//             output_format == OUTPUT__FORMAT_BINARY;
+//           }
+//           else if (format_param == 't')
+//           {
+//             output_format == OUTPUT__FORMAT_TEXT;
+//           }  
+//         }
+//         else if (output_param == 'c') // Go to _c_alibration mode
+//         {
+//           output_mode = OUTPUT__MODE_CALIBRATE_SENSORS;
+//           reset_calibration_session_flag = true;
+//         }
+//         else if (output_param == 's') // Output _s_ensor values
+//         {
+//           char values_param = readChar();
+//           char format_param = readChar();
+//           if (values_param == 'r')  // Output _r_aw sensor values
+//             output_mode = OUTPUT__MODE_SENSORS_RAW;
+//           else if (values_param == 'c')  // Output _c_alibrated sensor values
+//             output_mode = OUTPUT__MODE_SENSORS_CALIB;
+//           else if (values_param == 'b')  // Output _b_oth sensor values (raw and calibrated)
+//             output_mode = OUTPUT__MODE_SENSORS_BOTH;
 
-          if (format_param == 't') // Output values as _t_text
-            output_format = OUTPUT__FORMAT_TEXT;
-          else if (format_param == 'b') // Output values in _b_inary format
-            output_format = OUTPUT__FORMAT_BINARY;
-        }
-        else if (output_param == '0') // Disable continuous streaming output
-        {
-          turn_output_stream_off();
-          reset_calibration_session_flag = true;
-        }
-        else if (output_param == '1') // Enable continuous streaming output
-        {
-          reset_calibration_session_flag = true;
-          turn_output_stream_on();
-        }
-        else if (output_param == 'e') // _e_rror output settings
-        {
-          char error_param = readChar();
-          if (error_param == '0') output_errors = false;
-          else if (error_param == '1') output_errors = true;
-          else if (error_param == 'c') // get error count
-          {
-            Serial.print("#AMG-ERR:");
-            Serial.print(num_accel_errors); Serial.print(",");
-            Serial.print(num_magn_errors); Serial.print(",");
-            Serial.println(num_gyro_errors);
-          }
-        }
-      }
-#if OUTPUT__HAS_RN_BLUETOOTH == true
-      // Read messages from bluetooth module
-      // For this to work, the connect/disconnect message prefix of the module has to be set to "#".
-      else if (command == 'C') // Bluetooth "#CONNECT" message (does the same as "#o1")
-        turn_output_stream_on();
-      else if (command == 'D') // Bluetooth "#DISCONNECT" message (does the same as "#o0")
-        turn_output_stream_off();
-#endif // OUTPUT__HAS_RN_BLUETOOTH == true
-    }
-    else
-    { } // Skip character
-  }
+//           if (format_param == 't') // Output values as _t_text
+//             output_format = OUTPUT__FORMAT_TEXT;
+//           else if (format_param == 'b') // Output values in _b_inary format
+//             output_format = OUTPUT__FORMAT_BINARY;
+//         }
+//         else if (output_param == '0') // Disable continuous streaming output
+//         {
+//           turn_output_stream_off();
+//           reset_calibration_session_flag = true;
+//         }
+//         else if (output_param == '1') // Enable continuous streaming output
+//         {
+//           reset_calibration_session_flag = true;
+//           turn_output_stream_on();
+//         }
+//         else if (output_param == 'e') // _e_rror output settings
+//         {
+//           char error_param = readChar();
+//           if (error_param == '0') output_errors = false;
+//           else if (error_param == '1') output_errors = true;
+//           else if (error_param == 'c') // get error count
+//           {
+//             Serial.print("#AMG-ERR:");
+//             Serial.print(num_accel_errors); Serial.print(",");
+//             Serial.print(num_magn_errors); Serial.print(",");
+//             Serial.println(num_gyro_errors);
+//           }
+//         }
+//       }
+// #if OUTPUT__HAS_RN_BLUETOOTH == true
+//       // Read messages from bluetooth module
+//       // For this to work, the connect/disconnect message prefix of the module has to be set to "#".
+//       else if (command == 'C') // Bluetooth "#CONNECT" message (does the same as "#o1")
+//         turn_output_stream_on();
+//       else if (command == 'D') // Bluetooth "#DISCONNECT" message (does the same as "#o0")
+//         turn_output_stream_off();
+// #endif // OUTPUT__HAS_RN_BLUETOOTH == true
+//     }
+//     else
+//     { } // Skip character
+//   }
 
 
-  // Time to read the sensors again?
-  if((millis() - timestamp) >= OUTPUT__DATA_INTERVAL)
-  {
-    timestamp_old = timestamp;
-    timestamp = millis();
-    if (timestamp > timestamp_old)
-      G_Dt = (float) (timestamp - timestamp_old) / 1000.0f; // Real time of loop run. We use this on the DCM algorithm (gyro integration time)
-    else G_Dt = 0;
+//   // Time to read the sensors again?
+//   if((millis() - timestamp) >= OUTPUT__DATA_INTERVAL)
+//   {
+//     timestamp_old = timestamp;
+//     timestamp = millis();
+//     if (timestamp > timestamp_old)
+//       G_Dt = (float) (timestamp - timestamp_old) / 1000.0f; // Real time of loop run. We use this on the DCM algorithm (gyro integration time)
+//     else G_Dt = 0;
 
-    // Update sensor readings
-    read_sensors();
-    ///////////////////////////////////////////////////////
-    Serial.print("#raw accel:");
-    Serial.print(accel[0]);Serial.print(",");
-    Serial.print(accel[1]);Serial.print(",");
-    Serial.print(accel[2]);Serial.println();
-    Serial.print("#raw mag:");
-    Serial.print(magnetom[0]);Serial.print(",");
-    Serial.print(magnetom[1]);Serial.print(",");
-    Serial.print(magnetom[2]);Serial.println();
-    Serial.print("#raw gyro:");
-    Serial.print(gyro[0]);Serial.print(",");
-    Serial.print(gyro[1]);Serial.print(",");
-    Serial.print(gyro[2]);Serial.println();
-    /////////////////////////////////////////////////////////
-    if (output_mode == OUTPUT__MODE_CALIBRATE_SENSORS)  // We're in calibration mode
-    {
-      check_reset_calibration_session();  // Check if this session needs a reset
-      if (output_stream_on || output_single_on) output_calibration(curr_calibration_sensor);
-    }
-    else if (output_mode == OUTPUT__MODE_ANGLES)  // Output angles
-    {
-      // Apply sensor calibration
-      //apply xxxx_scale to make output in acc---250~+250,mag---600~+600
-      compensate_sensor_errors();
-      //normlize sensor output
-      norm(accel, (accel + 1), (accel + 2));
-      norm(magnetom, (magnetom + 1), (magnetom + 2));
-      //norm(gyro, (gyro + 1), (gyro + 2));
-      // Run qua_update algorithm
-      //////////////////////////////////////////////////////////
-      Serial.print("#quatanion:");
-      Serial.print(qua[0]);Serial.print(",");
-      Serial.print(qua[1]);Serial.print(",");
-      Serial.print(qua[2]);Serial.print(",");
-      Serial.print(qua[3]);Serial.println();
-      //////////////////////////////////////////////////////////////
-      error_calaulate();
-      quatanion_update();
+//     // Update sensor readings
+//     read_sensors();
+//     ///////////////////////////////////////////////////////
+//     Serial.print("#raw accel:");
+//     Serial.print(accel[0]);Serial.print(",");
+//     Serial.print(accel[1]);Serial.print(",");
+//     Serial.print(accel[2]);Serial.println();
+//     Serial.print("#raw mag:");
+//     Serial.print(magnetom[0]);Serial.print(",");
+//     Serial.print(magnetom[1]);Serial.print(",");
+//     Serial.print(magnetom[2]);Serial.println();
+//     Serial.print("#raw gyro:");
+//     Serial.print(gyro[0]);Serial.print(",");
+//     Serial.print(gyro[1]);Serial.print(",");
+//     Serial.print(gyro[2]);Serial.println();
+//     /////////////////////////////////////////////////////////
+//     if (output_mode == OUTPUT__MODE_CALIBRATE_SENSORS)  // We're in calibration mode
+//     {
+//       check_reset_calibration_session();  // Check if this session needs a reset
+//       if (output_stream_on || output_single_on) output_calibration(curr_calibration_sensor);
+//     }
+//     else if (output_mode == OUTPUT__MODE_ANGLES)  // Output angles
+//     {
+//       // Apply sensor calibration
+//       //apply xxxx_scale to make output in acc---250~+250,mag---600~+600
+//       compensate_sensor_errors();
+//       //normlize sensor output
+//       norm(accel, (accel + 1), (accel + 2));
+//       norm(magnetom, (magnetom + 1), (magnetom + 2));
+//       //norm(gyro, (gyro + 1), (gyro + 2));
+//       // Run qua_update algorithm
+//       //////////////////////////////////////////////////////////
+//       Serial.print("#quatanion:");
+//       Serial.print(qua[0]);Serial.print(",");
+//       Serial.print(qua[1]);Serial.print(",");
+//       Serial.print(qua[2]);Serial.print(",");
+//       Serial.print(qua[3]);Serial.println();
+//       //////////////////////////////////////////////////////////////
+//       error_calaulate();
+//       quatanion_update();
 
-      // Normalize
-      qua_norm(qua);
+//       // Normalize
+//       qua_norm(qua);
 
-      // Drift_correction();
-      // convert to Euler_angles
-      qua_euler();
+//       // Drift_correction();
+//       // convert to Euler_angles
+//       qua_euler();
       
-      if (output_stream_on || output_single_on) output_angles();
-    }
-    else if (output_mode == OUTPUT__MODE_QUATANION)  //output quatanion
-    {
-      if (output_stream_on || output_single_on) output_quatanion();
-    }
-    else  // Output sensor values
-    {      
-      if (output_stream_on || output_single_on) output_sensors();
-    }
+//       if (output_stream_on || output_single_on) output_angles();
+//     }
+//     else if (output_mode == OUTPUT__MODE_QUATANION)  //output quatanion
+//     {
+//       if (output_stream_on || output_single_on) output_quatanion();
+//     }
+//     else  // Output sensor values
+//     {      
+//       if (output_stream_on || output_single_on) output_sensors();
+//     }
     
-    output_single_on = false;
+//     output_single_on = false;
     
-#if DEBUG__PRINT_LOOP_TIME == true
-    Serial.print("loop time (ms) = ");
-    Serial.println(millis() - timestamp);
-#endif
-  }
-#if DEBUG__PRINT_LOOP_TIME == true
-  else
-  {
-    Serial.println("waiting...");
-  }
-#endif
+// #if DEBUG__PRINT_LOOP_TIME == true
+//     Serial.print("loop time (ms) = ");
+//     Serial.println(millis() - timestamp);
+// #endif
+//   }
+// #if DEBUG__PRINT_LOOP_TIME == true
+//   else
+//   {
+//     Serial.println("waiting...");
+//   }
+// #endif
 }

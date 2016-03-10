@@ -334,7 +334,7 @@ const float magn_ellipsoid_transform[3][3] = {{0.902, -0.00354, 0.000636}, {-0.0
 #define MAGN_Z_SCALE (100.0f / (MAGN_Z_MAX - MAGN_Z_OFFSET))
 
 // Gain for gyroscope (ITG-3205)
-#define GYRO_GAIN 1.300 // Same gain on all axes
+#define GYRO_GAIN 0.800 // Same gain on all axes
 #define GYRO_SCALED_RAD(x) (x * TO_RAD(GYRO_GAIN)) // Calculate the scaled gyro readings in radians per second
 
 // Stuff
@@ -706,18 +706,18 @@ void loop()
     else if (output_mode == OUTPUT__MODE_ANGLES)  // Output angles
     {
        //*********************newly added**************************************//
-       Serial.print("#raw accel:");
-       Serial.print(accel[0]);Serial.print(",");
-       Serial.print(accel[1]);Serial.print(",");
-       Serial.print(accel[2]);Serial.println();
-       Serial.print("#raw mag:");
-       Serial.print(magnetom[0]);Serial.print(",");
-       Serial.print(magnetom[1]);Serial.print(",");
-       Serial.print(magnetom[2]);Serial.println();
-       Serial.print("#raw gyro:");
-       Serial.print(gyro[0]);Serial.print(",");
-       Serial.print(gyro[1]);Serial.print(",");
-       Serial.print(gyro[2]);Serial.println();
+       // Serial.print("#raw accel:");
+       // Serial.print(accel[0]);Serial.print(",");
+       // Serial.print(accel[1]);Serial.print(",");
+       // Serial.print(accel[2]);Serial.println();
+       // Serial.print("#raw mag:");
+       // Serial.print(magnetom[0]);Serial.print(",");
+       // Serial.print(magnetom[1]);Serial.print(",");
+       // Serial.print(magnetom[2]);Serial.println();
+       // Serial.print("#raw gyro:");
+       // Serial.print(gyro[0]);Serial.print(",");
+       // Serial.print(gyro[1]);Serial.print(",");
+       // Serial.print(gyro[2]);Serial.println();
        //**************************************************************************//
        // Apply sensor calibration
        compensate_sensor_errors();

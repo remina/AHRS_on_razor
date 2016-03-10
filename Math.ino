@@ -76,7 +76,7 @@ void init_quatanion(float m[4], float yaw, float pitch, float roll)
 // convert quatanion to euler
 void qua_euler(void)
 {
-    pitch = asin(-2 * qua[1] * qua[3] + 2 * qua[0] * qua[2]);   
+    pitch = asin(2 * qua[0] * qua[2] -2 * qua[1] * qua[3]);   
     roll  = atan2(2 * qua[2] * qua[3] + 2 * qua[0] * qua[1],-2 * qua[1] * qua[1] - 2 * qua[2] * qua[2] + 1);
     yaw   = atan2(2 * qua[1] * qua[2] + 2 * qua[0] * qua[3],-2 * qua[2] * qua[2] - 2 * qua[3] * qua[3] + 1);
 }

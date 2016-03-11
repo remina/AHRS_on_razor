@@ -1,4 +1,5 @@
 /* This file is part of the Razor AHRS Firmware */
+
 // Init quatanion using euler angles
 void init_quatanion(float m[4], float yaw, float pitch, float roll)
 {
@@ -27,8 +28,8 @@ void sensor_filter(void) //sliding_window filter
 	if(++counter >= 9)
 		counter = 0;
 	//////////////////////////////////////////////////////////
-	Serial.print("#counter:");
-	Serial.print(counter);Serial.println();
+	// Serial.print("#counter:");
+	// Serial.print(counter);Serial.println();
 	// Apply sensor calibration
 	compensate_sensor_errors();
 	for(char i = 0; i < 3; i++)
@@ -42,18 +43,18 @@ void sensor_filter(void) //sliding_window filter
 		magnetom_mean[i] = mean(magnetom_store[i],9);
 	}
 	//////////////////////////////////////////////////////////
-	Serial.print("#mag_mean:");
-	Serial.print(magnetom_mean[0]);Serial.print(",");
-	Serial.print(magnetom_mean[1]);Serial.print(",");
-	Serial.print(magnetom_mean[2]);Serial.println();
-	Serial.print("#gravity_mean:");
-	Serial.print(accel_mean[0]);Serial.print(",");
-	Serial.print(accel_mean[1]);Serial.print(",");
-	Serial.print(accel_mean[2]);Serial.println();
-	Serial.print("#gyro_mean:");
-	Serial.print(gyro_mean[0]);Serial.print(",");
-	Serial.print(gyro_mean[1]);Serial.print(",");
-	Serial.print(gyro_mean[2]);Serial.println();
+	// Serial.print("#mag_mean:");
+	// Serial.print(magnetom_mean[0]);Serial.print(",");
+	// Serial.print(magnetom_mean[1]);Serial.print(",");
+	// Serial.print(magnetom_mean[2]);Serial.println();
+	// Serial.print("#gravity_mean:");
+	// Serial.print(accel_mean[0]);Serial.print(",");
+	// Serial.print(accel_mean[1]);Serial.print(",");
+	// Serial.print(accel_mean[2]);Serial.println();
+	// Serial.print("#gyro_mean:");
+	// Serial.print(gyro_mean[0]);Serial.print(",");
+	// Serial.print(gyro_mean[1]);Serial.print(",");
+	// Serial.print(gyro_mean[2]);Serial.println();
 	//////////////////////////////////////////////////////////////
 }
 
@@ -73,22 +74,26 @@ void error_calaulate(void)
   q3q3 = qua[3] * qua[3];
 
   ///////////////////////////////////////////////////////
-  // Serial.print("#corrected & normlized accel:");
-  // Serial.print(accel[0]);Serial.print(",");
-  // Serial.print(accel[1]);Serial.print(",");
-  // Serial.print(accel[2]);Serial.println();
+  Serial.print("#corrected & normlized accel_mean:");
+  Serial.print(accel_mean[0]);Serial.print(",");
+  Serial.print(accel_mean[1]);Serial.print(",");
+  Serial.print(accel_mean[2]);Serial.println();
   /////////////////////////////////////////////////////////
   ///////////////////////////////////////////////////////
-  // Serial.print("#corrected & normlized magnetom:");
-  // Serial.print(magnetom[0]);Serial.print(",");
-  // Serial.print(magnetom[1]);Serial.print(",");
-  // Serial.print(magnetom[2]);Serial.println();
+  Serial.print("#corrected & normlized magnetom_mean:");
+  Serial.print(magnetom_mean[0]);Serial.print(",");
+  Serial.print(magnetom_mean[1]);Serial.print(",");
+  Serial.print(magnetom_mean[2]);Serial.println();
   /////////////////////////////////////////////////////////
+  Serial.print("#gyro_mean:");
+  Serial.print(ripe_gyro[0]);Serial.print(",");
+  Serial.print(ripe_gyro[1]);Serial.print(",");
+  Serial.print(ripe_gyro[2]);Serial.println();
 
   // Reference direction of Earth's magnetic field
   hy = 2.0f * (magnetom_mean[0] * (0.5f - q2q2 - q3q3) + magnetom_mean[1] * (q1q2 - q0q3) + magnetom_mean[2] * (q1q3 + q0q2));
   hx = 2.0f * (magnetom_mean[0] * (q1q2 + q0q3) + magnetom_mean[1] * (0.5f - q1q1 - q3q3) + magnetom_mean[2] * (q2q3 - q0q1));
-  bx = -1.0f * (sqrt((hx * hx) + (hy * hy)));
+  bx = magnetom_mean[0] > 0?sqrt((hx * hx) + (hy * hy)):-1.0f * (sqrt((hx * hx) + (hy * hy)));
   bz = 2.0f * (magnetom_mean[0] * (q1q3 - q0q2) + magnetom_mean[1] * (q2q3 + q0q1) + magnetom_mean[2] * (0.5f - q1q1 - q2q2));
 
   ///////////////////////////////////////////////////////////////
@@ -103,29 +108,38 @@ void error_calaulate(void)
   vx = 2.0 * (q0q2 - q1q3);
   vy = -2.0 * (q0q1 + q2q3);
   vz = 2.0 * (0.5f - q1q1 - q2q2);
+  if (vx * accel_mean[0] < 0) vx = -vx;
+  if (vy * accel_mean[1] < 0) vy = -vy;
+  if (vz * accel_mean[2] < 0) vz = -vz;
 
   //normlize estimated output
   norm(&vx, &vy, &vz);
 
   ///////////////////////////////////////////////////////
-  // Serial.print("#final estimated gravity:");
-  // Serial.print(vx);Serial.print(",");
-  // Serial.print(vy);Serial.print(",");
-  // Serial.print(vz);Serial.println();
+  Serial.print("#final estimated gravity:");
+  Serial.print(vx);Serial.print(",");
+  Serial.print(vy);Serial.print(",");
+  Serial.print(vz);Serial.println();
   /////////////////////////////////////////////////////////
-  // Estimated direction of magnetic 
-     if ((magnetom_mean[0] * magnetom_mean[1]) > 0)
-     {
-	   wy =  2.0 * (bx * (0.5f - q2q2 - q3q3) + bz * (q1q3 - q0q2));
-	   wx =  -2.0 * (bx * (q1q2 - q0q3) + bz * (q0q1 + q2q3));
-	   wz =  2.0 * (bx * (q0q2 + q1q3) + bz * (0.5f - q1q1 - q2q2));  
-     }
-     else
-     {
-	   wy =  -2.0 * (bx * (0.5f - q2q2 - q3q3) + bz * (q1q3 - q0q2));
-	   wx =  2.0 * (bx * (q1q2 - q0q3) + bz * (q0q1 + q2q3));
-	   wz =  2.0 * (bx * (q0q2 + q1q3) + bz * (0.5f - q1q1 - q2q2)); 
-     }
+  // Estimated direction of magnetic
+  wy = 2.0 * (bx * (0.5f - q2q2 - q3q3) + bz * (q1q3 - q0q2));
+  wx = 2.0 * (bx * (q1q2 - q0q3) + bz * (q0q1 + q2q3));
+  wz = 2.0 * (bx * (q0q2 + q1q3) + bz * (0.5f - q1q1 - q2q2));
+  if (wx * magnetom_mean[0] < 0) wx = -wx;
+  if (wy * magnetom_mean[1] < 0) wy = -wy;
+  if (wz * magnetom_mean[2] < 0) wz = -wz;
+  // if ((magnetom_mean[0] * magnetom_mean[1]) > 0)
+  // {
+	// wy =  2.0 * (bx * (0.5f - q2q2 - q3q3) + bz * (q1q3 - q0q2));
+	// wx =  -2.0 * (bx * (q1q2 - q0q3) + bz * (q0q1 + q2q3));
+	// wz =  2.0 * (bx * (q0q2 + q1q3) + bz * (0.5f - q1q1 - q2q2));  
+  // }
+  // else
+  // {
+	// wy =  -2.0 * (bx * (0.5f - q2q2 - q3q3) + bz * (q1q3 - q0q2));
+	// wx =  2.0 * (bx * (q1q2 - q0q3) + bz * (q0q1 + q2q3));
+	// wz =  2.0 * (bx * (q0q2 + q1q3) + bz * (0.5f - q1q1 - q2q2)); 
+  // }
   // else if (magnetom[0] > 0 && magnetom[1] < 0)
   // {
 	// wy =  -2.0 * (bx * (0.5f - q2q2 - q3q3) + bz * (q1q3 - q0q2));
@@ -144,10 +158,10 @@ void error_calaulate(void)
   norm(&wx, &wy, &wz);
 
   ///////////////////////////////////////////////////////
-  // Serial.print("#final estimated magnetom:");
-  // Serial.print(wx);Serial.print(",");
-  // Serial.print(wy);Serial.print(",");
-  // Serial.print(wz);Serial.println();
+  Serial.print("#final estimated magnetom:");
+  Serial.print(wx);Serial.print(",");
+  Serial.print(wy);Serial.print(",");
+  Serial.print(wz);Serial.println();
   /////////////////////////////////////////////////////////
   // Error is sum of cross product between estimated direction and measured direction of field vectors
   ex = (accel_mean[1] * vz - accel_mean[2] * vy) + (magnetom_mean[1] * wz - magnetom_mean[2] * wy);
@@ -170,9 +184,9 @@ void quatanion_update(void)
   float gyro_x = 0.0, gyro_y = 0.0, gyro_z = 0.0;
 
   ///////////////////////////////////////////////////////
-  // Serial.print("#PI parameters:");
-  // Serial.print(two_kp);Serial.print(",");
-  // Serial.print(two_ki);Serial.println();
+  Serial.print("#PI parameters:");
+  Serial.print(two_kp);Serial.print(",");
+  Serial.print(two_ki);Serial.println();
   /////////////////////////////////////////////////////////
   
   // Compute and apply integral feedback if enabled(?2?3????PIDT?yуюб?Y?)
@@ -220,8 +234,8 @@ void quatanion_update(void)
   //using quatanion differential to update
   //quatanion interation
   ///////////////////////////////////////////////////////
-  Serial.print("#interation time:");
-  Serial.print(G_Dt);Serial.println();
+  // Serial.print("#interation time:");
+  // Serial.print(G_Dt);Serial.println();
   /////////////////////////////////////////////////////////
   qua[0] += (-qua[1] * gyro_x - qua[2] * gyro_y + qua[3] * gyro_z) * G_Dt / 2.0f;
   qua[1] += (qua[0] * gyro_x - qua[2] * gyro_z - qua[3] * gyro_y) *  G_Dt / 2.0f;

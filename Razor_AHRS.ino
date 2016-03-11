@@ -215,7 +215,7 @@ boolean output_errors = false;  // true or false
 #define GYRO_AVERAGE_OFFSET_Z ((float) -1.09)
 
 // Gain for gyroscope (ITG-3205)
-float gyro_gain = 0.700; // Same gain on all axes
+float gyro_gain = 0.115; // Same gain on all axes
 
 // DEBUG OPTIONS
 /*****************************************************************/
@@ -676,8 +676,8 @@ void loop()
        // Serial.print(gyro[2]);Serial.println();
        //**************************************************************************//
 	   ///////////////////////////////////////////////////////
-	   Serial.print("#gyro_gain:");
-	   Serial.print(gyro_gain);Serial.println();
+	   // Serial.print("#gyro_gain:");
+	   // Serial.print(gyro_gain);Serial.println();
 	   /////////////////////////////////////////////////////////
        // Apply sensor calibration & output mean
 	   sensor_filter();

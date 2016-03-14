@@ -6,43 +6,34 @@ void output_angles()
   if (output_format == OUTPUT__FORMAT_BINARY)
   {
     float ypr[3];  
-    // ypr[0] = TO_DEG(yaw);
-    // ypr[1] = TO_DEG(pitch);
-    // ypr[2] = TO_DEG(roll);
-    // Serial.write((byte*) ypr, 12);  // No new-line
-    Serial.print(yaw); Serial.print(",");
-    Serial.print(pitch); Serial.print(",");
-    Serial.print(roll); Serial.println();
+    ypr[0] = TO_DEG(yaw);
+    ypr[1] = TO_DEG(pitch);
+    ypr[2] = TO_DEG(roll);
+    Serial.write((byte*) ypr, 12);  // No new-line
   }
   else if (output_format == OUTPUT__FORMAT_TEXT)
   {
-    Serial.print("#YPR=");
-    Serial.print(TO_DEG(yaw)); Serial.print(",");
-    Serial.print(TO_DEG(pitch)); Serial.print(",");
-    Serial.print(TO_DEG(roll)); Serial.println();
+    ///////////////////////////////////////////////////////
+    Serial.print("#errors:");
+    Serial.print(ex);Serial.print(",");
+    Serial.print(ey);Serial.print(",");
+    Serial.print(ez);Serial.println();
+    /////////////////////////////////////////////////////////
+	Serial.print("yaw=");Serial.print(TO_DEG(yaw));Serial.print(",");
+    Serial.print("pitch=");Serial.print(TO_DEG(pitch)); Serial.print(",");
+    Serial.print("roll=");Serial.print(TO_DEG(roll)); Serial.println();
   }
 }
+
 
 // Output angles in quatanion
 void output_quatanion()
 {
-  if (output_format == OUTPUT__FORMAT_BINARY)
-  {
-    float qua_output[4];  
-    qua_output[0] = qua[0];
-    qua_output[1] = qua[1];
-    qua_output[2] = qua[2];
-    qua_output[3] = qua[3];
-    Serial.write((byte*) qua_output, 16);  // No new-line
-  }
-  else if (output_format == OUTPUT__FORMAT_TEXT)
-  {
-    Serial.print("#quatanion=");
-    Serial.print(qua[0]); Serial.print(",");
-    Serial.print(qua[1]); Serial.print(",");
-    Serial.print(qua[2]); Serial.print(",");
-    Serial.print(qua[3]); Serial.println();
-  }
+  Serial.print("#quatanion=");
+  Serial.print(qua[0]); Serial.print(",");
+  Serial.print(qua[1]); Serial.print(",");
+  Serial.print(qua[2]); Serial.print(",");
+  Serial.print(qua[3]); Serial.println();
 }
 
 

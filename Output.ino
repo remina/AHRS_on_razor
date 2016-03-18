@@ -20,18 +20,6 @@ void output_angles()
   }
 }
 
-
-// Output angles in quatanion
-void output_quatanion()
-{
-  Serial.print("#quatanion=");
-  Serial.print(qua[0]); Serial.print(",");
-  Serial.print(qua[1]); Serial.print(",");
-  Serial.print(qua[2]); Serial.print(",");
-  Serial.print(qua[3]); Serial.println();
-}
-
-
 void output_calibration(int calibration_sensor)
 {
   if (calibration_sensor == 0)  // Accelerometer
@@ -142,3 +130,12 @@ void output_sensors()
   }
 }
 
+// Output angles in quatanion
+void output_quatanion()
+{
+  Serial.print("#quatanion=");
+  Serial.print(qua[0]); Serial.print(",");
+  Serial.print(qua[1]); Serial.print(",");
+  Serial.print(qua[2]); Serial.print(",");
+  Serial.print(qua[3]); Serial.println();
+}

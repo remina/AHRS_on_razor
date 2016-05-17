@@ -1,57 +1,5 @@
 /* This file is part of the Razor AHRS Firmware */
 
-//float abselute
-float fabs(float x)
-{
-  float out;
-  if (x < 0)
-    out = -x;
-  else 
-    out = x;
-  return out;
-}
-
-// Fast inverse square-root
-// See: http://en.wikipedia.org/wiki/Fast_inverse_square_root
-float invSqrt(float x)
-{
-  float halfx = 0.5f * x;
-  float y = x;
-  long i = *(long*)&y;
-  i = 0x5f3759df - (i>>1);
-  y = *(float*)&i;
-  y = y * (1.5f - (halfx * y * y));
-  return y;
-}
-
-//************************sometihng for quatanion************************************//
-void qua_norm(float* qua)
-{
-  float norm = invSqrt(qua[0] * qua[0] +  qua[1] * qua[1] + qua[2] * qua[2] + qua[3] * qua[3]);
-  qua[0] *= norm;
-  qua[1] *= norm;
-  qua[2] *= norm;
-  qua[3] *= norm;
-}
-
-//normlize vector
-void norm(float *x, float *y, float *z)
-{
-  float norm = invSqrt(*x * *x + *y * *y + *z * *z);
-  *x *= norm;
-  *y *= norm;
-  *z *= norm;
-}
-
-
-void qua_multiply(float from[4], float to[4], float *out)
-{
-  out[0] = from[0] * to[0] - from[1] * to[1] - from[2] * to[2] - from[3] * to[3];
-  out[1] = from[0] * to[1] + from[1] * to[0] + from[2] * to[3] - from[3] * to[2];
-  out[2] = from[0] * to[2] + from[2] * to[0] + from[3] * to[1] - from[1] * to[3];
-  out[3] = from[0] * to[3] + from[3] * to[0] + from[1] * to[2] - from[2] * to[1];
-}
-
 // Computes the dot product of two vectors
 float Vector_Dot_Product(const float v1[3], const float v2[3])
 {
@@ -139,37 +87,3 @@ void init_rotation_matrix(float m[3][3], float yaw, float pitch, float roll)
   m[2][1] = c2 * s1;
   m[2][2] = c1 * c2;
 }
-
-
-// Init quatanion using euler angles
-void init_quatanion(float m[4], float yaw, float pitch, float roll)
-{
-  float h_roll = 0.5 * roll;
-  float h_pitch = 0.5 * pitch;
-  float h_yaw = 0.5 * yaw;
-  float c1 = cos(h_roll);
-  float s1 = sin(h_roll);
-  float c2 = cos(h_pitch);
-
-  float s2 = sin(h_pitch);
-  float c3 = cos(h_yaw);
-  float s3 = sin(h_yaw);
-
-  m[0] = c1 * c2 * c3 + s1 * s2 * s3;  
-  m[1] = s1 * c2 * c3 - c1 * s2 * s3;  
-  m[2] = c1 * s2 * c3 + s1 * c2 * s3;  
-  m[3] = c1 * c2 * s3 - s1 * s2 * c3; 
-
-  qua_norm(m);      
-}
-
-// convert quatanion to euler
-void qua_euler(void)
-{
-    pitch = -1.0f * asin(-2 * qua[1] * qua[3] + 2 * qua[0] * qua[2]);   
-    roll  = atan2(2 * qua[2] * qua[3] + 2 * qua[0] * qua[1],-2 * qua[1] * qua[1] - 2 * qua[2] * qua[2] + 1);
-    yaw   = atan2(2 * qua[1] * qua[2] + 2 * qua[0] * qua[3],-2 * qua[2] * qua[2] - 2 * qua[3] * qua[3] + 1);
-}
-
-
-

@@ -54,7 +54,7 @@ void Read_Accel()
   Wire.endTransmission();
   
   Wire.beginTransmission(ACCEL_ADDRESS);
-  Wire.requestFrom(ACCEL_ADDRESS, 6);  // Request 6 bytes(each axis 2 bytes)
+  Wire.requestFrom(ACCEL_ADDRESS, 6);  // Request 6 bytes
   while(Wire.available())  // ((Wire.available())&&(i<6))
   { 
     buff[i] = WIRE_RECEIVE();  // Read one byte
@@ -66,9 +66,9 @@ void Read_Accel()
   {
     // No multiply by -1 for coordinate system transformation here, because of double negation:
     // We want the gravity vector, which is negated acceleration vector.
-    accel[0] = -1 * (int16_t)((((uint16_t) buff[3]) << 8) | buff[2]);  // X axis (internal sensor y axis)
+    accel[0] = (int16_t)((((uint16_t) buff[3]) << 8) | buff[2]);  // X axis (internal sensor y axis)
     accel[1] = (int16_t)((((uint16_t) buff[1]) << 8) | buff[0]);  // Y axis (internal sensor x axis)
-    accel[2] = -1 * (int16_t)((((uint16_t) buff[5]) << 8) | buff[4]);  // Z axis (internal sensor z axis)
+    accel[2] = (int16_t)((((uint16_t) buff[5]) << 8) | buff[4]);  // Z axis (internal sensor z axis)
   }
   else
   {
@@ -119,11 +119,11 @@ void Read_Magn()
     magnetom[1] = -1 * (int16_t)(((((uint16_t) buff[0]) << 8) | buff[1]));  // Y axis (internal sensor -x axis)
     magnetom[2] = -1 * (int16_t)(((((uint16_t) buff[4]) << 8) | buff[5]));  // Z axis (internal sensor -z axis)
 // 9DOF Razor IMU SEN-10736 using HMC5883L magnetometer
-#elif HW__VERSION_CODE == 10736//THIS ONE!
+#elif HW__VERSION_CODE == 10736
     // MSB byte first, then LSB; Y and Z reversed: X, Z, Y
     magnetom[0] = -1 * (int16_t)(((((uint16_t) buff[4]) << 8) | buff[5]));  // X axis (internal sensor -y axis)
-    magnetom[1] = (int16_t)(((((uint16_t) buff[0]) << 8) | buff[1]));  // Y axis (internal sensor -x axis)
-    magnetom[2] = -1 *(int16_t)(((((uint16_t) buff[2]) << 8) | buff[3]));  // Z axis (internal sensor -z axis)
+    magnetom[1] = -1 * (int16_t)(((((uint16_t) buff[0]) << 8) | buff[1]));  // Y axis (internal sensor -x axis)
+    magnetom[2] = -1 * (int16_t)(((((uint16_t) buff[2]) << 8) | buff[3]));  // Z axis (internal sensor -z axis)
 // 9DOF Sensor Stick SEN-10183 and SEN-10321 using HMC5843 magnetometer
 #elif (HW__VERSION_CODE == 10183) || (HW__VERSION_CODE == 10321)
     // MSB byte first, then LSB; X, Y, Z
@@ -198,9 +198,9 @@ void Read_Gyro()
   
   if (i == 6)  // All bytes received?
   {
-    gyro[0] = (int16_t)(((((uint16_t) buff[2]) << 8) | buff[3]));    // X axis (internal sensor -y axis)
+    gyro[0] = -1 * (int16_t)(((((uint16_t) buff[2]) << 8) | buff[3]));    // X axis (internal sensor -y axis)
     gyro[1] = -1 * (int16_t)(((((uint16_t) buff[0]) << 8) | buff[1]));    // Y axis (internal sensor -x axis)
-    gyro[2] = (int16_t)(((((uint16_t) buff[4]) << 8) | buff[5]));    // Z axis (internal sensor -z axis)
+    gyro[2] = -1 * (int16_t)(((((uint16_t) buff[4]) << 8) | buff[5]));    // Z axis (internal sensor -z axis)
   }
   else
   {

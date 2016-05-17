@@ -1,11 +1,51 @@
 /***************************************************************************************************************
-* Razor AHRS Firmware 
+* Razor AHRS Firmware v1.4.2
 * 9 Degree of Measurement Attitude and Heading Reference System
 * for Sparkfun "9DOF Razor IMU" (SEN-10125 and SEN-10736)
 * and "9DOF Sensor Stick" (SEN-10183, 10321 and SEN-10724)
 *
+* Released under GNU GPL (General Public License) v3.0
+* Copyright (C) 2013 Peter Bartz [http://ptrbrtz.net]
+* Copyright (C) 2011-2012 Quality & Usability Lab, Deutsche Telekom Laboratories, TU Berlin
+*
+* Infos, updates, bug reports, contributions and feedback:
+*     https://github.com/ptrbrtz/razor-9dof-ahrs
 *
 *
+* History:
+*   * Original code (http://code.google.com/p/sf9domahrs/) by Doug Weibel and Jose Julio,
+*     based on ArduIMU v1.5 by Jordi Munoz and William Premerlani, Jose Julio and Doug Weibel. Thank you!
+*
+*   * Updated code (http://groups.google.com/group/sf_9dof_ahrs_update) by David Malik (david.zsolt.malik@gmail.com)
+*     for new Sparkfun 9DOF Razor hardware (SEN-10125).
+*
+*   * Updated and extended by Peter Bartz (peter-bartz@gmx.de):
+*     * v1.3.0
+*       * Cleaned up, streamlined and restructured most of the code to make it more comprehensible.
+*       * Added sensor calibration (improves precision and responsiveness a lot!).
+*       * Added binary yaw/pitch/roll output.
+*       * Added basic serial command interface to set output modes/calibrate sensors/synch stream/etc.
+*       * Added support to synch automatically when using Rovering Networks Bluetooth modules (and compatible).
+*       * Wrote new easier to use test program (using Processing).
+*       * Added support for new version of "9DOF Razor IMU": SEN-10736.
+*       --> The output of this code is not compatible with the older versions!
+*       --> A Processing sketch to test the tracker is available.
+*     * v1.3.1
+*       * Initializing rotation matrix based on start-up sensor readings -> orientation OK right away.
+*       * Adjusted gyro low-pass filter and output rate settings.
+*     * v1.3.2
+*       * Adapted code to work with new Arduino 1.0 (and older versions still).
+*     * v1.3.3
+*       * Improved synching.
+*     * v1.4.0
+*       * Added support for SparkFun "9DOF Sensor Stick" (versions SEN-10183, SEN-10321 and SEN-10724).
+*     * v1.4.1
+*       * Added output modes to read raw and/or calibrated sensor data in text or binary format.
+*       * Added static magnetometer soft iron distortion compensation
+*     * v1.4.2
+*       * (No core firmware changes)
+*
+* TODOs:
 *   * Allow optional use of EEPROM for storing and reading calibration values.
 *   * Use self-test and temperature-compensation features of the sensors.
 ***************************************************************************************************************/
@@ -59,18 +99,19 @@
               is 3x4 = 12 bytes long).
       "#ot" - Output angles in TEXT format (Output frames have form like "#YPR=-142.28,-5.38,33.52",
               followed by carriage return and line feed [\r\n]).
-
-      // newly added commands
+      
+	  // newly added commands
       "#oq" - Output quatanion in TEXT format (Output frames have form like "#QUA=xx.xx,-xx.xx,xx.xx,xx.xx",
               followed by carriage return and line feed [\r\n]).
 
       //change parameters: quatanion update alglorathim change P & I，correct GYRO_GAIN 
-      "#xpxxx" - change proportion , proportion is xxx/10000
+      "#xcxxx" - change calculate interval , interval is xxxms
 
-      "#xixxx" - change integral , integral is xxx/10000
+      "#xoxxx" - change output interval , interval is xxxms
 	  
 	  "#xgxxx" - change gyro gain ,gain is xxx/10000
-      
+	  
+	  
       // Sensor calibration
       "#oc" - Go to CALIBRATION output mode.
       "#on" - When in calibration mode, go on to calibrate NEXT sensor.
@@ -129,7 +170,7 @@
 /*****************************************************************/
 // Select your hardware here by uncommenting one line!
 //#define HW__VERSION_CODE 10125 // SparkFun "9DOF Razor IMU" version "SEN-10125" (HMC5843 magnetometer)
-#define HW__VERSION_CODE 10736 // SparkFun "9DOF Razor IMU" version "SEN-10736" (HMC5883L magnetometer)
+  #define HW__VERSION_CODE 10736 // SparkFun "9DOF Razor IMU" version "SEN-10736" (HMC5883L magnetometer)
 //#define HW__VERSION_CODE 10183 // SparkFun "9DOF Sensor Stick" version "SEN-10183" (HMC5843 magnetometer)
 //#define HW__VERSION_CODE 10321 // SparkFun "9DOF Sensor Stick" version "SEN-10321" (HMC5843 magnetometer)
 //#define HW__VERSION_CODE 10724 // SparkFun "9DOF Sensor Stick" version "SEN-10724" (HMC5883L magnetometer)
@@ -138,13 +179,13 @@
 // OUTPUT OPTIONS
 /*****************************************************************/
 // Set your serial port baud rate used to send out data here!
-#define OUTPUT__BAUD_RATE 9600
+#define OUTPUT__BAUD_RATE 57600
 
 // Sensor data output interval in milliseconds
 // This may not work, if faster than 20ms (=50Hz)
 // Code is tuned for 20ms, so better leave it like that
-#define OUTPUT__DATA_INTERVAL 450  // in milliseconds
-#define CALCULATE__DATA_INTERVAL 20
+float output_interval = 30;  // in milliseconds
+float calculate_interval = 20;  // in milliseconds
 
 // Output mode definitions (do not change)
 #define OUTPUT__MODE_CALIBRATE_SENSORS 0 // Outputs sensor min/max values as text for manual calibration
@@ -152,15 +193,16 @@
 #define OUTPUT__MODE_SENSORS_CALIB 2 // Outputs calibrated sensor values for all 9 axes
 #define OUTPUT__MODE_SENSORS_RAW 3 // Outputs raw (uncalibrated) sensor values for all 9 axes
 #define OUTPUT__MODE_SENSORS_BOTH 4 // Outputs calibrated AND raw sensor values for all 9 axes
-
 // Output format definitions (do not change)
 #define OUTPUT__FORMAT_TEXT 0 // Outputs data as text
 #define OUTPUT__FORMAT_BINARY 1 // Outputs data as binary float
 #define OUTPUT__FORMAT_QUATANION 2 //outputs yaw/pitch/roll as quatanion
+#define OUTPUT__FORMAT_ONBOARD 3//for on board using
+
 
 // Select your startup output mode and format here!
 int output_mode = OUTPUT__MODE_ANGLES;
-int output_format = OUTPUT__FORMAT_TEXT;
+int output_format = OUTPUT__FORMAT_ONBOARD;
 
 // Select if serial continuous streaming output is enabled per default on startup.
 #define OUTPUT__STARTUP_STREAM_ON true  // true or false
@@ -215,8 +257,41 @@ boolean output_errors = false;  // true or false
 #define GYRO_AVERAGE_OFFSET_Y ((float) 19.72)
 #define GYRO_AVERAGE_OFFSET_Z ((float) -1.09)
 
-// Gain for gyroscope (ITG-3205)
-float gyro_gain = 0.115; // Same gain on all axes
+/*
+// Calibration example:
+
+// "accel x,y,z (min/max) = -277.00/264.00  -256.00/278.00  -299.00/235.00"
+#define ACCEL_X_MIN ((float) -277)
+#define ACCEL_X_MAX ((float) 264)
+#define ACCEL_Y_MIN ((float) -256)
+#define ACCEL_Y_MAX ((float) 278)
+#define ACCEL_Z_MIN ((float) -299)
+#define ACCEL_Z_MAX ((float) 235)
+
+// "magn x,y,z (min/max) = -511.00/581.00  -516.00/568.00  -489.00/486.00"
+//#define MAGN_X_MIN ((float) -511)
+//#define MAGN_X_MAX ((float) 581)
+//#define MAGN_Y_MIN ((float) -516)
+//#define MAGN_Y_MAX ((float) 568)
+//#define MAGN_Z_MIN ((float) -489)
+//#define MAGN_Z_MAX ((float) 486)
+
+// Extended magn
+#define CALIBRATION__MAGN_USE_EXTENDED true
+const float magn_ellipsoid_center[3] = {91.5, -13.5, -48.1};
+const float magn_ellipsoid_transform[3][3] = {{0.902, -0.00354, 0.000636}, {-0.00354, 0.9, -0.00599}, {0.000636, -0.00599, 1}};
+
+// Extended magn (with Sennheiser HD 485 headphones)
+//#define CALIBRATION__MAGN_USE_EXTENDED true
+//const float magn_ellipsoid_center[3] = {72.3360, 23.0954, 53.6261};
+//const float magn_ellipsoid_transform[3][3] = {{0.879685, 0.000540833, -0.0106054}, {0.000540833, 0.891086, -0.0130338}, {-0.0106054, -0.0130338, 0.997494}};
+
+//"gyro x,y,z (current/average) = -40.00/-42.05  98.00/96.20  -18.00/-18.36"
+#define GYRO_AVERAGE_OFFSET_X ((float) -42.05)
+#define GYRO_AVERAGE_OFFSET_Y ((float) 96.20)
+#define GYRO_AVERAGE_OFFSET_Z ((float) -18.36)
+*/
+
 
 // DEBUG OPTIONS
 /*****************************************************************/
@@ -224,6 +299,8 @@ float gyro_gain = 0.115; // Same gain on all axes
 #define DEBUG__NO_DRIFT_CORRECTION false
 // Print elapsed time after each I/O loop
 #define DEBUG__PRINT_LOOP_TIME false
+
+
 /*****************************************************************/
 /****************** END OF USER SETUP AREA!  *********************/
 /*****************************************************************/
@@ -260,45 +337,63 @@ float gyro_gain = 0.115; // Same gain on all axes
 #define MAGN_Y_SCALE (100.0f / (MAGN_Y_MAX - MAGN_Y_OFFSET))
 #define MAGN_Z_SCALE (100.0f / (MAGN_Z_MAX - MAGN_Z_OFFSET))
 
+
+// Gain for gyroscope (ITG-3205)
+float gyro_gain = 0.06957; // Same gain on all axes
+
+// DCM parameters
+#define Kp_ROLLPITCH 0.02f
+#define Ki_ROLLPITCH 0.00002f
+#define Kp_YAW 1.2f
+#define Ki_YAW 0.00002f
+
 // Stuff
 #define STATUS_LED_PIN 13  // Pin number of status LED
 #define GRAVITY 256.0f // "1G reference" used for DCM filter and accelerometer calibration
 #define TO_RAD(x) (x * 0.01745329252)  // *pi/180
 #define TO_DEG(x) (x * 57.2957795131)  // *180/pi
 
-
-
 // Sensor variables
 float accel[3];  // Actually stores the NEGATED acceleration (equals gravity, if board not moving).
 float accel_min[3];
 float accel_max[3];
-float accel_store[3][9];// for filterring
 
 float magnetom[3];
 float magnetom_min[3];
 float magnetom_max[3];
 float magnetom_tmp[3];
-float magnetom_store[3][9];// for filterring
 
 float gyro[3];
 float gyro_average[3];
-float ripe_gyro[3];
-float gyro_store[3][9];// for filterring
 int gyro_num_samples = 0;
 
-// init 
+// DCM variables
 float MAG_Heading;
+float Accel_Vector[3]= {0, 0, 0}; // Store the acceleration in a vector
+float Gyro_Vector[3]= {0, 0, 0}; // Store the gyros turn rate in a vector
+float Omega_Vector[3]= {0, 0, 0}; // Corrected Gyro_Vector data
+float Omega_P[3]= {0, 0, 0}; // Omega Proportional correction
+float Omega_I[3]= {0, 0, 0}; // Omega Integrator
+float Omega[3]= {0, 0, 0};
+float errorRollPitch[3] = {0, 0, 0};
+float errorYaw[3] = {0, 0, 0};
+float DCM_Matrix[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
+float Update_Matrix[3][3] = {{0, 1, 2}, {3, 4, 5}, {6, 7, 8}};
+float Temporary_Matrix[3][3] = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
 
 // Euler angles
 float yaw;
 float pitch;
 float roll;
 
+// Quatanion
+float qua[4] = {1,0,0,0};
+
 // DCM timing in the main loop
 unsigned long timestamp;
 unsigned long timestamp_old;
 unsigned long timestamp_out;
-float G_Dt; // Integration time for algorithm
+float G_Dt; // Integration time for DCM algorithm
 
 // More output-state variables
 boolean output_stream_on;
@@ -309,116 +404,42 @@ int num_accel_errors = 0;
 int num_magn_errors = 0;
 int num_gyro_errors = 0;
 
-//*************************************NEWLY ADDED FOR AHRS ARGLORITHM**********************************************//
-float qua[4] = {1,0,0,0};
-float q0q1 = 0.0, q0q2 = 0.0, q0q3 = 0.0, q1q1 = 0.0, q1q2 = 0.0, 
-      q1q3 = 0.0, q2q2 = 0.0, q2q3 = 0.0, q3q3 = 0.0;
-
-//estimated dorection of gravity
-float vx = 0.0, vy = 0.0, vz = 0.0;
-//estimated dorection of mag
-float wx = 0.0, wy = 0.0, wz = 0.0;
-
-float ex = 0.0, ey = 0.0, ez = 0.0;
-float integral_x = 0.0, integral_y = 0.0, integral_z = 0.0;
-
-float two_kp = 0.072, two_ki = 0.001;
-
-// for filterring
-float accel_mean[3] = {0.0};
-float gyro_mean[3] = {0.0};
-float magnetom_mean[3] = {0.0};
-unsigned int counter = 0;
-
 void read_sensors() {
   Read_Gyro(); // Read gyroscope
   Read_Accel(); // Read accelerometer
   Read_Magn(); // Read magnetometer
 }
 
-// Read every sensor 9 times, record a time stamp and for 3 2-d arraies for filter
-// Init alglorathim with an filtered orientation
+// Read every sensor and record a time stamp
+// Init DCM with unfiltered orientation
 // TODO re-init global vars?
-void reset_sensor_fusion() 
-{
+void reset_sensor_fusion() {
   float temp1[3];
   float temp2[3];
   float xAxis[] = {1.0f, 0.0f, 0.0f};
 
-  // form filtering arraies
-  for (; counter < 9; counter++)
-  {
-	  read_sensors();
-	  // Apply sensor calibration
-	  compensate_sensor_errors();
-	  for(char i = 0; i < 3; i++)
-	  {
-		accel_store[i][counter] = accel[i];
-		magnetom_store[i][counter] = magnetom[i];
-		gyro_store[i][counter] = gyro[i]; 
-	  }
-  }
-  // calculate mean
-  for(char i = 0; i < 3; i++)
-  {
-	accel_mean[i] = mean(accel_store[i],9);
-	gyro_mean[i] = mean(gyro_store[i],9);
-	magnetom_mean[i] = mean(magnetom_store[i],9);
-  }
-  
-  //**************************newly added normlize sensor output********************//
-  norm(accel_mean, (accel_mean + 1), (accel_mean + 2));
-  norm(magnetom_mean, (magnetom_mean + 1), (magnetom_mean + 2));
-  
+  read_sensors();
   timestamp = millis();
-  timestamp_old = millis();
   
   // GET PITCH
   // Using y-z-plane-component/x-component of gravity vector
-  pitch = atan2(accel_mean[0], sqrt(accel_mean[1] * accel_mean[1] + accel_mean[2] * accel_mean[2]));
+  pitch = -atan2(accel[0], sqrt(accel[1] * accel[1] + accel[2] * accel[2]));
 	
   // GET ROLL
   // Compensate pitch of gravity vector 
-  Vector_Cross_Product(temp1, accel_mean, xAxis);
+  Vector_Cross_Product(temp1, accel, xAxis);
   Vector_Cross_Product(temp2, xAxis, temp1);
   // Normally using x-z-plane-component/y-component of compensated gravity vector
   // roll = atan2(temp2[1], sqrt(temp2[0] * temp2[0] + temp2[2] * temp2[2]));
   // Since we compensated for pitch, x-z-plane-component equals z-component:
-  roll = -atan2(temp2[1], temp2[2]);
+  roll = atan2(temp2[1], temp2[2]);
   
   // GET YAW
   Compass_Heading();
   yaw = MAG_Heading;
   
-  Serial.print("###############################################");
-  
-  //////////////////////////////////////////////////////////
-  Serial.print("#mag_mean:");
-  Serial.print(magnetom_mean[0]);Serial.print(",");
-  Serial.print(magnetom_mean[1]);Serial.print(",");
-  Serial.print(magnetom_mean[2]);Serial.println();
-  Serial.print("#gravity_mean:");
-  Serial.print(accel_mean[0]);Serial.print(",");
-  Serial.print(accel_mean[1]);Serial.print(",");
-  Serial.print(accel_mean[2]);Serial.println();
-  //////////////////////////////////////////////////////////////
-
-  //////////////////////////////////////////////////////////
-  Serial.print("#init YPR:");
-  Serial.print(TO_DEG(yaw));Serial.print(",");
-  Serial.print(TO_DEG(pitch));Serial.print(",");
-  Serial.print(TO_DEG(roll));Serial.println();
-  //////////////////////////////////////////////////////////////
-  
-  // Init quatanion
-  init_quatanion(qua, yaw, pitch, roll);
-  //////////////////////////////////////////////////////////
-  Serial.print("#init quatanion:");
-  Serial.print(qua[0]);Serial.print(",");
-  Serial.print(qua[1]);Serial.print(",");
-  Serial.print(qua[2]);Serial.print(",");
-  Serial.print(qua[3]);Serial.println();
-  //////////////////////////////////////////////////////////////
+  // Init rotation matrix
+  init_rotation_matrix(DCM_Matrix, yaw, pitch, roll);
 }
 
 // Apply calibration to raw sensor readings
@@ -443,7 +464,6 @@ void compensate_sensor_errors() {
     gyro[0] -= GYRO_AVERAGE_OFFSET_X;
     gyro[1] -= GYRO_AVERAGE_OFFSET_Y;
     gyro[2] -= GYRO_AVERAGE_OFFSET_Z;
-
 }
 
 // Reset calibration session if reset_calibration_session_flag is set
@@ -451,13 +471,13 @@ void check_reset_calibration_session()
 {
   // Raw sensor values have to be read already, but no error compensation applied
 
-  // Reset this calibration session?only once!
+  // Reset this calibration session?
   if (!reset_calibration_session_flag) return;
   
   // Reset acc and mag calibration variables
   for (int i = 0; i < 3; i++) {
-    accel_min[i] = accel_max[i] = 0.00f;
-    magnetom_min[i] = magnetom_max[i] = 0.00f;
+    accel_min[i] = accel_max[i] = accel[i];
+    magnetom_min[i] = magnetom_max[i] = magnetom[i];
   }
 
   // Reset gyro calibration variables
@@ -514,20 +534,13 @@ void setup()
 #endif
 }
 
-          
 // Main loop
 void loop()
 {
-  ///////////////////////////////////////////////////////
-  //Serial.print("#output:");
-  //Serial.print(output_mode);Serial.print(",");
-  //Serial.print(output_format);Serial.println();
-  /////////////////////////////////////////////////////////
   // Read incoming control messages
   if (Serial.available() >= 2)
   {
-    
-	if (Serial.read() == '#') // Start of new control message
+    if (Serial.read() == '#') // Start of new control message
     {
       int command = Serial.read(); // Commands
       if (command == 'f') // request one output _f_rame
@@ -537,16 +550,16 @@ void loop()
       {
         char pi = readChar();
         float num;
-        for(char k = 0; k <= 3; k++)
+        for(char k = 0; k <= 2; k++)
         {
             num += float(Serial.read() - '0');
             num *= 10.0f;
         }
-        num /= 100000.0f;
-        if (pi == 'p')
-          two_kp = num;
-        else if (pi == 'i')
-          two_ki = num;
+        num /= 10000.0f;
+        if (pi == 'c')
+          calculate_interval = num * 10000;
+        else if (pi == 'o')
+          output_interval = num * 10000;
 		else if (pi == 'g')
 		  gyro_gain = num;
 		else ;
@@ -581,6 +594,11 @@ void loop()
           output_mode = OUTPUT__MODE_ANGLES;
           output_format = OUTPUT__FORMAT_BINARY;
         }
+		else if(output_param == 'z')
+		{
+		  output_mode = OUTPUT__MODE_ANGLES;
+		  output_format = OUTPUT__FORMAT_ONBOARD;
+		}
         //*************************************newly added ******************************************//
         else if (output_param == 'q') //output angle in quatanion
         {
@@ -646,10 +664,10 @@ void loop()
   }
 
   // Time to read the sensors again?
-  if((millis() - timestamp) >= CALCULATE__DATA_INTERVAL)
+  if((millis() - timestamp) >= calculate_interval)
   {
     timestamp_old = timestamp;
-	timestamp = millis();
+    timestamp = millis();
     if (timestamp > timestamp_old)
       G_Dt = (float) (timestamp - timestamp_old) / 1000.0f; // Real time of loop run. We use this on the DCM algorithm (gyro integration time)
     else G_Dt = 0;
@@ -663,41 +681,19 @@ void loop()
     }
     else if (output_mode == OUTPUT__MODE_ANGLES)  // Output angles
     {
-       //*********************newly added**************************************//
-       // Serial.print("#raw accel:");
-       // Serial.print(accel[0]);Serial.print(",");
-       // Serial.print(accel[1]);Serial.print(",");
-       // Serial.print(accel[2]);Serial.println();
-       // Serial.print("#raw mag:");
-       // Serial.print(magnetom[0]);Serial.print(",");
-       // Serial.print(magnetom[1]);Serial.print(",");
-       // Serial.print(magnetom[2]);Serial.println();
-       // Serial.print("#raw gyro:");
-       // Serial.print(gyro[0]);Serial.print(",");
-       // Serial.print(gyro[1]);Serial.print(",");
-       // Serial.print(gyro[2]);Serial.println();
-       //**************************************************************************//
-	   ///////////////////////////////////////////////////////
-	   // Serial.print("#gyro_gain:");
-	   // Serial.print(gyro_gain);Serial.println();
-	   /////////////////////////////////////////////////////////
-       // Apply sensor calibration & output mean
-	   sensor_filter();
-       //**************************newly added normlize sensor output********************//
-       norm(accel_mean, (accel_mean + 1), (accel_mean + 2));
-       norm(magnetom_mean, (magnetom_mean + 1), (magnetom_mean + 2));
+      // Apply sensor calibration
+      compensate_sensor_errors();
     
-       //**************************convert gyro to rad & apply a scale*************************//
-	   ripe_gyro[0]=gyro_scaled_rad(gyro_mean[0]); //gyro x roll
-	   ripe_gyro[1]=gyro_scaled_rad(gyro_mean[1]); //gyro y pitch
-       ripe_gyro[2]=gyro_scaled_rad(gyro_mean[2]); //gyro z yaw
-       // Run qua_update algorithm
-       error_calaulate();
-       quatanion_update();
-     }
-     else  // Output sensor values
-     {       
-     }
+      // Run DCM algorithm
+      Compass_Heading(); // Calculate magnetic heading
+      Matrix_update();
+      Normalize();
+      Drift_correction();
+    }
+    else  // Output sensor values
+    {      
+      ;
+    }
     
     output_single_on = false;
     
@@ -706,7 +702,7 @@ void loop()
     Serial.println(millis() - timestamp);
 #endif
   }
-  if ((millis() - timestamp_out) >= OUTPUT__DATA_INTERVAL)
+  if ((millis() - timestamp_out) >= output_interval)
   {
     timestamp_out = millis();
 	if (output_mode == OUTPUT__MODE_CALIBRATE_SENSORS)  // We're in calibration mode
@@ -719,21 +715,24 @@ void loop()
 	  {
 		if (output_format == OUTPUT__FORMAT_BINARY || output_format == OUTPUT__FORMAT_TEXT)
 		{
-		   ///////////////////////////////////////////////////////
-		   // Serial.print("#PI parameters:");
-           // Serial.print(two_kp);Serial.print(",");
-           // Serial.print(two_ki);Serial.println();
-           /////////////////////////////////////////////////////////
-		   // convert to Euler_angles
-		   qua_euler();
+		   Euler_angles();
 	       output_angles();
 		}
 		else if (output_format == OUTPUT__FORMAT_QUATANION)
+		{
+		   Euler_angles();
+		   init_quatanion(qua, yaw, pitch, roll);
 		   output_quatanion();
+		}
+		else if(output_format == OUTPUT__FORMAT_ONBOARD)
+		{
+			Euler_angles();
+			output_angles_onboard();
+		}
 		else
 		{
 		   // convert to Euler_angles
-		   qua_euler();
+		   Euler_angles();
 		   output_angles();
 		}
 	  }  

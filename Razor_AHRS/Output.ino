@@ -1,6 +1,78 @@
 /* This file is part of the Razor AHRS Firmware */
 
 // Output angles: yaw, pitch, roll
+void output_angles_onboard()
+{
+    int ypr[3];  
+    ypr[0] = TO_DEG(yaw) * 100;
+    ypr[1] = TO_DEG(pitch) * 100;
+    ypr[2] = TO_DEG(roll) * 100;
+	byte sum = 342;
+	String temp;
+	
+    Serial.print(85,HEX);
+    Serial.print(86,HEX);
+	for(int i = 0; i < 3; i++)
+	{
+		temp = String(ypr[i],HEX);
+		if(temp.length() == 0) 
+			temp = "0000";
+		else if(temp.length() == 1)
+			temp = "000" + temp;
+		else if(temp.length() == 2)
+			temp = "00" + temp;
+		else if(temp.length() == 3)
+			temp = "0" + temp;
+		else
+			temp = temp.substring(0,4);
+		// if((4 - temp.length()) != 0)
+		// {
+			// for(int i = 0; (i + temp.length()) <= 4; i++)
+				// temp = "0" + temp;		
+		// }
+		Serial.print(temp);
+		if(temp[0] == 'a' || temp[0] == 'b' || temp[0] == 'c' || temp[0] == 'd' || temp[0] == 'e' || temp[0] == 'f')
+		{
+			sum += (temp[0] - 'a' + 10) * 16;
+		}
+		else{
+			sum += (temp[0] - '0') * 16;
+		}
+		if(temp[1] == 'a' || temp[1] == 'b' || temp[1] == 'c' || temp[1] == 'd' || temp[1] == 'e' || temp[1] == 'f')
+		{
+			sum += temp[1] - 'a' + 10;
+		}
+		else{
+			sum += temp[1] - '0';
+		}
+		if(temp[2] == 'a' || temp[2] == 'b' || temp[2] == 'c' || temp[2] == 'd' || temp[2] == 'e' || temp[2] == 'f')
+		{
+			sum += (temp[2] - 'a' + 10) * 16;
+		}
+		else{
+			sum += (temp[2] - '0') * 16;
+		}
+		if(temp[3] == 'a' || temp[3] == 'b' || temp[3] == 'c' || temp[3] == 'd' || temp[3] == 'e' || temp[3] == 'f')
+		{
+			sum += temp[3] - 'a' + 10;
+		}
+		else{
+			sum += temp[3] - '0';
+		}
+	}
+    Serial.print(85,HEX);
+	Serial.print(86,HEX);
+	temp = String(sum,HEX);
+	if(temp.length() == 0) 
+		temp = "00";
+	else if(temp.length() == 1)
+		temp = "0" + temp;
+	else
+		temp = temp.substring(0,2);
+	Serial.print(temp);
+    Serial.println();
+}
+
 void output_angles()
 {
   if (output_format == OUTPUT__FORMAT_BINARY)
@@ -13,39 +85,12 @@ void output_angles()
   }
   else if (output_format == OUTPUT__FORMAT_TEXT)
   {
-	// Serial.print("#gravity_mean:");
-	// Serial.print(accel_mean[0]);Serial.print(",");
-	// Serial.print(accel_mean[1]);Serial.print(",");
-	// Serial.print(accel_mean[2]);Serial.println();
-	///////////////////////////////////////////////////////
-	// Serial.print("#final estimated gravity:");
-	// Serial.print(vx);Serial.print(",");
-	// Serial.print(vy);Serial.print(",");
-	// Serial.print(vz);Serial.println();
-	/////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////
-    Serial.print("#errors:");
-    Serial.print(ez);Serial.print(",");
-    Serial.print(ey);Serial.print(",");
-    Serial.print(ex);Serial.println();
-    /////////////////////////////////////////////////////////
-	Serial.print("yaw=");Serial.print(TO_DEG(yaw));Serial.print(",");
-    Serial.print("pitch=");Serial.print(TO_DEG(pitch)); Serial.print(",");
-    Serial.print("roll=");Serial.print(TO_DEG(roll)); Serial.println();
+    Serial.print("#YPR=");
+    Serial.print(TO_DEG(yaw)); Serial.print(",");
+    Serial.print(TO_DEG(pitch)); Serial.print(",");
+    Serial.print(TO_DEG(roll)); Serial.println();
   }
 }
-
-
-// Output angles in quatanion
-void output_quatanion()
-{
-  Serial.print("#quatanion=");
-  Serial.print(qua[0]); Serial.print(",");
-  Serial.print(qua[1]); Serial.print(",");
-  Serial.print(qua[2]); Serial.print(",");
-  Serial.print(qua[3]); Serial.println();
-}
-
 
 void output_calibration(int calibration_sensor)
 {
@@ -157,3 +202,12 @@ void output_sensors()
   }
 }
 
+// Output angles in quatanion
+void output_quatanion()
+{
+  Serial.print("#quatanion=");
+  Serial.print(qua[0]); Serial.print(",");
+  Serial.print(qua[1]); Serial.print(",");
+  Serial.print(qua[2]); Serial.print(",");
+  Serial.print(qua[3]); Serial.println();
+}

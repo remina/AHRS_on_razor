@@ -3,17 +3,18 @@
 // Output angles: yaw, pitch, roll
 void output_angles_onboard()
 {
-    int ypr[3];  
+     int ypr[3];  
     ypr[0] = TO_DEG(yaw) * 100;
     ypr[1] = TO_DEG(pitch) * 100;
     ypr[2] = TO_DEG(roll) * 100;
 	byte sum = 342;
+	byte sub_sum = 0;
 	String temp;
 	
-    Serial.print(85,HEX);
-    Serial.print(86,HEX);
+	byte hexdata[11] = {0x55,0x56,0x00,0x00,0x00,0x00,0x00,0x00,0x55,0x56,0x00};
+	// prepare datas in hex
 	for(int i = 0; i < 3; i++)
-	{
+	 {
 		temp = String(ypr[i],HEX);
 		if(temp.length() == 0) 
 			temp = "0000";
@@ -25,43 +26,50 @@ void output_angles_onboard()
 			temp = "0" + temp;
 		else
 			temp = temp.substring(0,4);
-		// if((4 - temp.length()) != 0)
-		// {
-			// for(int i = 0; (i + temp.length()) <= 4; i++)
-				// temp = "0" + temp;		
-		// }
-		Serial.print(temp);
+        // // 怎么输出HEX，而不是字符
 		if(temp[0] == 'a' || temp[0] == 'b' || temp[0] == 'c' || temp[0] == 'd' || temp[0] == 'e' || temp[0] == 'f')
 		{
+			sub_sum += (temp[0] - 'a' + 10) * 16;
 			sum += (temp[0] - 'a' + 10) * 16;
 		}
 		else{
 			sum += (temp[0] - '0') * 16;
+			sub_sum += (temp[0] - '0') * 16;
 		}
 		if(temp[1] == 'a' || temp[1] == 'b' || temp[1] == 'c' || temp[1] == 'd' || temp[1] == 'e' || temp[1] == 'f')
 		{
 			sum += temp[1] - 'a' + 10;
+			sub_sum += temp[1] - 'a' + 10;
 		}
 		else{
 			sum += temp[1] - '0';
+			sub_sum += temp[1] - '0';
 		}
+		hexdata[i * 2 + 2] = sub_sum;
+		sub_sum = 0;
+		
 		if(temp[2] == 'a' || temp[2] == 'b' || temp[2] == 'c' || temp[2] == 'd' || temp[2] == 'e' || temp[2] == 'f')
 		{
 			sum += (temp[2] - 'a' + 10) * 16;
+			sub_sum += (temp[2] - 'a' + 10) * 16;
 		}
 		else{
 			sum += (temp[2] - '0') * 16;
+			sub_sum += (temp[2] - '0') * 16;
 		}
 		if(temp[3] == 'a' || temp[3] == 'b' || temp[3] == 'c' || temp[3] == 'd' || temp[3] == 'e' || temp[3] == 'f')
 		{
 			sum += temp[3] - 'a' + 10;
+			sub_sum += temp[3] - 'a' + 10; 
 		}
 		else{
 			sum += temp[3] - '0';
+			sub_sum += temp[3] - '0';
 		}
+		hexdata[i * 2 + 3] = sub_sum;
+		sub_sum = 0;
 	}
-    Serial.print(85,HEX);
-	Serial.print(86,HEX);
+	// prepare checksum
 	temp = String(sum,HEX);
 	if(temp.length() == 0) 
 		temp = "00";
@@ -69,8 +77,23 @@ void output_angles_onboard()
 		temp = "0" + temp;
 	else
 		temp = temp.substring(0,2);
-	Serial.print(temp);
-    Serial.println();
+	if(temp[0] == 'a' || temp[0] == 'b' || temp[0] == 'c' || temp[0] == 'd' || temp[0] == 'e' || temp[0] == 'f')
+	{
+		sub_sum += (temp[0] - 'a' + 10) * 16;
+	}
+	else{
+		sub_sum += (temp[0] - '0') * 16;
+	}
+	if(temp[1] == 'a' || temp[1] == 'b' || temp[1] == 'c' || temp[1] == 'd' || temp[1] == 'e' || temp[1] == 'f')
+	{
+		sub_sum += temp[1] - 'a' + 10;
+	}
+	else{
+		sub_sum += temp[1] - '0';
+	}
+	hexdata[10] = sub_sum;
+	sub_sum = 0;
+	Serial.write(hexdata, 11);
 }
 
 void output_angles()

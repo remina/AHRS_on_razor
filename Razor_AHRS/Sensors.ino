@@ -3,7 +3,7 @@
 // I2C code to read the sensors
 
 // Sensor I2C addresses
-#define ACCEL_ADDRESS ((int16_t) 0x53) // 0x53 = 0xA6 / 2
+#define ACCEL_ADDRESS ((int16_t) 0x53) // 7-BITS 0x53 = 0xA6 / 2
 #define MAGN_ADDRESS  ((int16_t) 0x1E) // 0x1E = 0x3C / 2
 #define GYRO_ADDRESS  ((int16_t) 0x68) // 0x68 = 0xD0 / 2
 
@@ -26,16 +26,16 @@ void Accel_Init()
 {
   Wire.beginTransmission(ACCEL_ADDRESS);
   WIRE_SEND(0x2D);  // Power register
-  WIRE_SEND(0x08);  // Measurement mode
+  WIRE_SEND(0x08);  // Measurement mode(no link function, no sleep)
   Wire.endTransmission();
   delay(5);
   Wire.beginTransmission(ACCEL_ADDRESS);
   WIRE_SEND(0x31);  // Data format register
-  WIRE_SEND(0x08);  // Set to full resolution
+  WIRE_SEND(0x08);  // Set to full resolution,2g range
   Wire.endTransmission();
   delay(5);
   
-  // Because our main loop runs at 50Hz we adjust the output data rate to 50Hz (25Hz bandwidth)
+  // Because main loop runs at 50Hz adjust the output data rate to 50Hz (25Hz bandwidth)
   Wire.beginTransmission(ACCEL_ADDRESS);
   WIRE_SEND(0x2C);  // Rate
   WIRE_SEND(0x09);  // Set to 50Hz, normal operation
@@ -81,15 +81,22 @@ void Magn_Init()
 {
   Wire.beginTransmission(MAGN_ADDRESS);
   WIRE_SEND(0x02); 
-  WIRE_SEND(0x00);  // Set continuous mode (default 10Hz)
+  WIRE_SEND(0x00);  // Set continuous mode (default 15Hz)
   Wire.endTransmission();
   delay(5);
 
   Wire.beginTransmission(MAGN_ADDRESS);
   WIRE_SEND(0x00);
-  WIRE_SEND(0b00011000);  // Set 50Hz
+  WIRE_SEND(0b00111000);  // Set 50Hz, average 2/1
   Wire.endTransmission();
   delay(5);
+  
+    
+  // Wire.beginTransmission(MAGN_ADDRESS);
+  // WIRE_SEND(0x01);
+  // WIRE_SEND(0b00000010);  // mag gain for 1.9Ga
+  // Wire.endTransmission();
+  // delay(5);
 }
 
 void Read_Magn()
@@ -154,18 +161,18 @@ void Gyro_Init()
   Wire.endTransmission();
   delay(5);
   
-  // Select full-scale range of the gyro sensors
-  // Set LP filter bandwidth to 42Hz
+  // Select full-scale range of the gyro sensors 2000./s
+  // Set LPF to 20Hz.but normally set to 42Hz.internal sample rate at 1kHz.
   Wire.beginTransmission(GYRO_ADDRESS);
   WIRE_SEND(0x16);
-  WIRE_SEND(0x1B);  // DLPF_CFG = 3, FS_SEL = 3
+  WIRE_SEND(0x1C);  // DLPF_CFG = 4, FS_SEL = 3
   Wire.endTransmission();
   delay(5);
   
   // Set sample rato to 50Hz
   Wire.beginTransmission(GYRO_ADDRESS);
   WIRE_SEND(0x15);
-  WIRE_SEND(0x0A);  //  SMPLRT_DIV = 10 (50Hz)
+  WIRE_SEND(0x13);  //  SMPLRT_DIV = 19 (50Hz)
   Wire.endTransmission();
   delay(5);
 

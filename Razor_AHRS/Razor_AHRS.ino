@@ -104,12 +104,12 @@
       "#oq" - Output quatanion in TEXT format (Output frames have form like "#QUA=xx.xx,-xx.xx,xx.xx,xx.xx",
               followed by carriage return and line feed [\r\n]).
 
-      //change parameters: quatanion update alglorathim change P & I，correct GYRO_GAIN 
+      //change parameters: quatanion update alglorathim change  ，correct GYRO_GAIN 
       "#xcxxx" - change calculate interval , interval is xxxms
 
       "#xoxxx" - change output interval , interval is xxxms
 	  
-	  "#xgxxx" - change gyro gain ,gain is xxx/10000
+      "#xgxxx" - change gyro gain ,gain is xxx/10000
 	  
 	  
       // Sensor calibration
